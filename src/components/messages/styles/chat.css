@@ -53,11 +53,9 @@
 .chat-user-details {
   position:relative;
   display: flex;
-  
   gap: 2px;
-
-  
 }
+
 .user-status {
   font-size: 12px;
   color: var(--text-secondary);
@@ -66,7 +64,6 @@
   gap: 10px;
   margin-top: 30px;
   margin-left:-70px;
-  
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,7 +77,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 
 .user-status .status.online {
   color: var(--success);
@@ -99,7 +95,6 @@
   height: 5px;
   border-radius: 50%;
   display: inline-block;
-  
 }
 
 .user-status .status.online::before { 
@@ -519,7 +514,6 @@
   flex-shrink: 0;
 }
 
-
 .message-input-container {
   flex: 1;
   position: relative;
@@ -928,6 +922,41 @@
 
   .message-content-wrapper {
     max-width: 240px;
+  }
+
+  /* === IMPROVED MESSAGE INPUT AREA FOR SMALL SCREENS === */
+  .chat-input-area {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .act-btn,
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px; /* prevent shrinking */
+    font-size: 14px; /* adjust icon size if needed */
+  }
+
+  .input-actions {
+    gap: 4px;
+  }
+
+  .message-input-container {
+    flex: 1;
+    min-width: 0; /* allow shrinking below content width */
+  }
+
+  .message-input {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 42px;
+  }
+
+  .emoji-picker-wrapper {
+    left: auto;
+    right: 0;
+    bottom: 50px;
   }
 }
 
@@ -2054,7 +2083,7 @@
   }
   .new-chat-container .form-input {
     width: 100%;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
   .start-chat-btn,
   .cancel-btn {

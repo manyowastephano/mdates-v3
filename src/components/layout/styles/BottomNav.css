@@ -9,7 +9,7 @@
   background: var(--white);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95); /* slightly transparent to blend with content */
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
   display: flex;
   justify-content: space-around;
@@ -18,7 +18,8 @@
   z-index: 1000;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-top: 1px solid var(--border-light);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* 🔽 Removed border-radius for a straight edge‑to‑edge bar */
+  border-radius: 0;
   box-shadow: var(--shadow-md);
 }
 
@@ -44,7 +45,7 @@
   color: var(--text-tertiary);
   transition: all 0.2s ease;
   position: relative;
-  min-width: 0; /* prevent flex overflow */
+  min-width: 0;
   border-radius: var(--radius-sm);
 }
 
@@ -55,7 +56,8 @@
 
 .nav-item.active {
   color: var(--mubas-blue);
-  
+  /* 🔽 Force no background on active item */
+  background: transparent;
 }
 
 .nav-icon-container {
@@ -143,7 +145,7 @@
 .nav-item:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  pointer-events: auto; /* still allow? better to disable */
+  pointer-events: auto;
 }
 
 /* Small screen adjustments */

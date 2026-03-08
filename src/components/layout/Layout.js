@@ -1,6 +1,6 @@
-// Layout.js - Updated
+// Layout.js - Updated with chat route detection
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
@@ -8,6 +8,7 @@ import './styles/Layout.css';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -32,6 +33,9 @@ const Layout = ({ children }) => {
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Check if current route is a chat page
+  const isChatPage = location.pathname.startsWith('/messages/') || location.pathname === '/messages';
 
   return (
     <div className="app-container">
@@ -63,8 +67,8 @@ const Layout = ({ children }) => {
         </main>
       </div>
 
-      {/* Bottom Navigation (Mobile only) */}
-      {isMobile && <BottomNav />}
+      {/* Bottom Navigation – hidden on chat pages */}
+      {isMobile && !isChatPage && <BottomNav />}
     </div>
   );
 };

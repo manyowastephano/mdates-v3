@@ -13,6 +13,9 @@
 // ✅ MESSAGE ACTIONS: edit, delete, reply (UI + optimistic updates, ready for backend)
 // ✅ FIX: Prevent "Failed to load conversation" error after chat already loaded
 // ✅ ADDITIONAL SAFEGUARD: error only shown when messages are absent
+// ✅ INPUT FOCUS: hides attachment & voice buttons when typing for more space on mobile
+// ✅ FIX: Attachment messages no longer show placeholder text below media
+// ✅ FIX: Exact time in tooltip now shows HH:MM (no seconds, no GMT)
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -108,10 +111,8 @@ const Chat = ({
   const joinedConvRef = useRef(null);
   const connectedOnceRef = useRef(false);
 
-  
   const hasLoadedRef = useRef(false);
   const prevConvIdRef = useRef();
-
 
   const [messages, setMessages] = useState(initialMessages);
   const [newMessage, setNewMessage] = useState("");
@@ -120,7 +121,6 @@ const Chat = ({
   );
   const [sending, setSending] = useState(false);
   const [conversationUser, setConversationUser] = useState(() => {
-   
     if (initialConversation?.participants) {
       return initialConversation.participants.find(
         (p) => Number(p.id) !== Number(currentUser?.id)
@@ -147,9 +147,12 @@ const Chat = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Message actions dropdown
-  const [activeMessageId, setActiveMessageId] = useState(null); // which message's menu is open
-  const [editingMessageId, setEditingMessageId] = useState(null); // message being edited
+  const [activeMessageId, setActiveMessageId] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
+
+  // Input focus state (to hide attachment/voice buttons on mobile)
+  const [inputFocused, setInputFocused] = useState(false);
 
   const convIdNum = useMemo(() => {
     if (!effectiveConversationId || effectiveConversationId === "new") return null;
@@ -212,18 +215,33 @@ const Chat = ({
   // ----------------------------
   // Helpers
   // ----------------------------
+  // 🔧 IMPROVED: Extract attachment URL from various possible server fields
   const mapMessageData = useCallback(
-    (message) => ({
-      id: message.id,
-      text: message.content,
-      time: new Date(message.timestamp || message.created_at),
-      sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
-      read: !!message.read,
-      type: message.type || "text",
-      attachment: message.attachment_url || null,
-      deleted: message.deleted || false, // flag for deleted messages
-      raw: message,
-    }),
+    (message) => {
+      let attachmentUrl = null;
+      if (message.attachment_url) {
+        attachmentUrl = message.attachment_url;
+      } else if (message.attachment) {
+        // If attachment is an object with a url property, use that; otherwise assume it's a string URL
+        attachmentUrl = typeof message.attachment === 'object' ? message.attachment.url : message.attachment;
+      } else if (message.file_url) {
+        attachmentUrl = message.file_url;
+      } else if (message.image_url) {
+        attachmentUrl = message.image_url;
+      }
+
+      return {
+        id: message.id,
+        text: message.content || "", // fallback to empty string
+        time: new Date(message.timestamp || message.created_at),
+        sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
+        read: !!message.read,
+        type: message.type || "text",
+        attachment: attachmentUrl,
+        deleted: message.deleted || false,
+        raw: message,
+      };
+    },
     [currentUser?.id]
   );
 
@@ -455,7 +473,6 @@ const Chat = ({
       } catch (err) {
         console.error("Error loading conversation:", err);
         // Only set error if there are no messages – otherwise keep the existing ones
-       
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -489,7 +506,7 @@ const Chat = ({
     onConversationCreated,
     propUser,
     initialConversation,
-    messages.length, 
+    messages.length,
   ]);
 
   // ----------------------------
@@ -777,9 +794,10 @@ const Chat = ({
         }
 
         const tempId = `tmp-att-${Date.now()}`;
+        // 🔧 FIX: Set optimistic message text to empty string so no placeholder appears
         const optimistic = {
           id: tempId,
-          text: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
+          text: "", // was "📷 Photo" or "📎 Attachment"
           time: new Date(),
           sender: "me",
           read: false,
@@ -790,9 +808,10 @@ const Chat = ({
         };
         setMessages((prev) => [...prev, optimistic]);
 
+        // 🔧 FIX: Send empty content for attachment messages
         const ack = await safeSocketEmit("send_message", {
           conversation_id: convIdNum,
-          content: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
+          content: "", // was file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment"
           type: "attachment",
           attachment_url: uploadedUrl,
         });
@@ -893,9 +912,10 @@ const Chat = ({
       }
 
       const tempId = `tmp-voice-${Date.now()}`;
+      // 🔧 FIX: Set optimistic message text to empty string
       const optimistic = {
         id: tempId,
-        text: "🎤 Voice message",
+        text: "", // was "🎤 Voice message"
         time: new Date(),
         sender: "me",
         read: false,
@@ -906,9 +926,10 @@ const Chat = ({
       };
       setMessages((prev) => [...prev, optimistic]);
 
+      // 🔧 FIX: Send empty content for voice messages
       const ack = await safeSocketEmit("send_message", {
         conversation_id: convIdNum,
-        content: "🎤 Voice message",
+        content: "", // was "🎤 Voice message"
         type: "attachment",
         attachment_url: uploadedUrl,
       });
@@ -979,7 +1000,6 @@ const Chat = ({
         message_id: message.id,
       });
       if (!ack?.ok) {
-        
         console.error("Delete failed", ack);
         alert("Failed to delete message.");
 
@@ -1083,10 +1103,8 @@ const Chat = ({
     }
   };
 
-  
   if (!token) return <Loading message="Checking authentication..." />;
 
- 
   if (loading && messages.length === 0) {
     return (
       <div className="chat-page">
@@ -1109,7 +1127,6 @@ const Chat = ({
     );
   }
 
-  
   if (!conversationUser && effectiveConversationId !== "new" && messages.length === 0 && !loading) {
     return (
       <div className="chat-page">
@@ -1123,7 +1140,6 @@ const Chat = ({
       </div>
     );
   }
-
 
   const messagesWithDividers = [];
   let lastDate = null;
@@ -1143,50 +1159,49 @@ const Chat = ({
 
   return (
     <div className="chat-page">
-    
-<div className="chat-header">
-  {/* LEFT SIDE: back button + user info */}
-  <div className="chat-header-left">
-    <div className="chat-user-info" onClick={handleProfileClick} style={{ cursor: "pointer" }}>
-      <div className="chat-avatar">
-        {conversationUser?.profile_picture ? (
-          <img src={conversationUser.profile_picture} alt={conversationUser.name} className="avatar-image" />
-        ) : (
-          getInitials(conversationUser?.name || "User")
-        )}
-        {conversationUser?.is_online && <div className="online-indicator"></div>}
-      </div>
+      <div className="chat-header">
+        {/* LEFT SIDE: back button + user info */}
+        <div className="chat-header-left">
+          <div className="chat-user-info" onClick={handleProfileClick} style={{ cursor: "pointer" }}>
+            <div className="chat-avatar">
+              {conversationUser?.profile_picture ? (
+                <img src={conversationUser.profile_picture} alt={conversationUser.name} className="avatar-image" />
+              ) : (
+                getInitials(conversationUser?.name || "User")
+              )}
+              {conversationUser?.is_online && <div className="online-indicator"></div>}
+            </div>
 
-      <div className="chat-user-details">
-        <h3>
-          {conversationUser?.name || "User"}
-          {conversationUser?.age ? `, ${conversationUser.age}` : ""}
-        </h3>
-        <div className="user-status">
-          <span className={`status ${conversationUser?.is_online ? "online" : "offline"}`}>
-            {conversationUser?.is_online ? "Online" : `Last seen ${conversationUser?.last_seen || "recently"}`}
-          </span>
+            <div className="chat-user-details">
+              <h3>
+                {conversationUser?.name || "User"}
+                {conversationUser?.age ? `, ${conversationUser.age}` : ""}
+              </h3>
+              <div className="user-status">
+                <span className={`status ${conversationUser?.is_online ? "online" : "offline"}`}>
+                  {conversationUser?.is_online ? "Online" : `Last seen ${conversationUser?.last_seen || "recently"}`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE: call, video, close */}
+        <div className="chat-actions">
+          <button className="act-btn" onClick={handleCall} title="Audio call" disabled={!conversationUser}>
+            <FaPhoneAlt style={{ width: "20px" }} />
+          </button>
+
+          <button className="act-btn" onClick={handleVideoCall} title="Video call" disabled={!conversationUser}>
+            <FaVideo style={{ width: "20px" }} />
+          </button>
+
+          {/* Close button – replaces the old dropdown */}
+          <button className="act-btn" onClick={handleBackClick} title="Close chat">
+            <FaTimes style={{ width: "20px" }} />
+          </button>
         </div>
       </div>
-    </div>
-  </div>
-
-  {/* RIGHT SIDE: call, video, close */}
-  <div className="chat-actions">
-    <button className="act-btn" onClick={handleCall} title="Audio call" disabled={!conversationUser}>
-      <FaPhoneAlt style={{ width: "20px" }} />
-    </button>
-
-    <button className="act-btn" onClick={handleVideoCall} title="Video call" disabled={!conversationUser}>
-      <FaVideo style={{ width: "20px" }} />
-    </button>
-
-    {/* Close button – replaces the old dropdown */}
-    <button className="act-btn" onClick={handleBackClick} title="Close chat">
-      <FaTimes style={{ width: "20px" }} />
-    </button>
-  </div>
-</div>
 
       <div className="chat-container">
         {conversation?.is_match && (
@@ -1217,10 +1232,12 @@ const Chat = ({
               }
               const message = item.data;
               const relativeTime = getRelativeTime(new Date(message.time));
-              const exactTime = new Date(message.time).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
+
+              // 🔧 FIX: Format exact time as HH:MM (24-hour) without seconds or timezone
+              const date = new Date(message.time);
+              const hours = date.getHours().toString().padStart(2, '0');
+              const minutes = date.getMinutes().toString().padStart(2, '0');
+              const exactTime = `${hours}:${minutes}`;
 
               // If message is deleted, show placeholder
               const messageContent = message.deleted ? (
@@ -1278,13 +1295,15 @@ const Chat = ({
                       </div>
                     ) : (
                       <>
-                        <div className="message-content">{messageContent}</div>
+                        {/* 🔧 FIX: Show text only if there's no attachment OR message is deleted */}
+                        {(!message.attachment || message.deleted) && (
+                          <div className="message-content">{messageContent}</div>
+                        )}
                         {message.edited && !message.deleted && (
                           <span className="edited-indicator">(edited)</span>
                         )}
                       </>
                     )}
-
                     <div className="message-meta">
                       <span className="message-time" title={exactTime}>{relativeTime}</span>
 
@@ -1351,28 +1370,29 @@ const Chat = ({
 
       <form className="chat-input-area" onSubmit={handleSendMessage}>
         <div className="input-actions">
-          <button
-            type="button"
-            className="act-btn"
-            onClick={handleAttachmentClick}
-            title="Send photo or video"
-            disabled={sending || !effectiveConversationId || effectiveConversationId === "new"}
-          >
-            <FaImages style={{ width: "20px" }} />
-          </button>
+          {!inputFocused && (
+            <button
+              type="button"
+              className="act-btn"
+              onClick={handleAttachmentClick}
+              title="Send photo or video"
+              disabled={sending || !effectiveConversationId || effectiveConversationId === "new"}
+            >
+              <FaImages style={{ width: "20px" }} />
+            </button>
+          )}
 
-          <button
-            type="button"
-            className={`act-btn ${isRecording ? "recording" : ""}` }
-            onClick={handleVoiceMessage}
-            title={isRecording ? "Stop recording" : "Record voice message"}
-            disabled={sending || !effectiveConversationId || effectiveConversationId === "new"}
-            
-          >
-            <FaMicrophone style={{ width: "20px" }} />
-          </button>
-
-          
+          {!inputFocused && (
+            <button
+              type="button"
+              className={`act-btn ${isRecording ? "recording" : ""}`}
+              onClick={handleVoiceMessage}
+              title={isRecording ? "Stop recording" : "Record voice message"}
+              disabled={sending || !effectiveConversationId || effectiveConversationId === "new"}
+            >
+              <FaMicrophone style={{ width: "20px" }} />
+            </button>
+          )}
         </div>
 
         <div className="message-input-container">
@@ -1382,26 +1402,28 @@ const Chat = ({
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             rows="1"
             disabled={sending}
           />
         </div>
         <div className="emoji-picker-container" ref={emojiPickerRef}>
-            <button
-              type="button"
-              className="act-btn"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              title="Add emoji"
-              disabled={sending}
-            >
-              <FaSmile style={{ width: "20px" }} />
-            </button>
-            {showEmojiPicker && (
-              <div className="emoji-picker-wrapper">
-                <EmojiPicker onEmojiClick={onEmojiClick} />
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            className="act-btn"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            title="Add emoji"
+            disabled={sending}
+          >
+            <FaSmile style={{ width: "20px" }} />
+          </button>
+          {showEmojiPicker && (
+            <div className="emoji-picker-wrapper">
+              <EmojiPicker onEmojiClick={onEmojiClick} />
+            </div>
+          )}
+        </div>
 
         <button type="submit" className="send-btn" disabled={!newMessage.trim() || sending}>
           {sending ? <FaSpinner className="spinner" /> : <FaPaperPlane style={{ width: "20px" }} />}

@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS, fetchJSON } from '../../config/api';
 import Loading from '../common/Loading';
-import { FaCheckDouble, FaPlus, FaEllipsisV } from 'react-icons/fa';
+import { FaCheckDouble, FaPlus, FaEllipsisV, FaLock, FaLightbulb } from 'react-icons/fa';
 import './styles/chat.css';
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://mudates.tiguleni.com';
@@ -706,11 +706,11 @@ const Messages = ({ onSelectConversation }) => {
 
       <div className="messages-footer">
         <div className="footer-info">
-          <i className="fas fa-lock"></i>
+          <FaLock style={{ width: '20px' }}/>
           <span>Your messages are private and secure</span>
         </div>
         <div className="footer-tips">
-          <i className="fas fa-lightbulb"></i>
+          <FaLightbulb style={{ width: '20px' }}/>
           <span>Tip: Be respectful and genuine in your conversations</span>
         </div>
       </div>

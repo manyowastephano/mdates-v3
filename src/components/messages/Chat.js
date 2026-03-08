@@ -14,8 +14,6 @@
 // ✅ FIX: Prevent "Failed to load conversation" error after chat already loaded
 // ✅ ADDITIONAL SAFEGUARD: error only shown when messages are absent
 // ✅ INPUT FOCUS: hides attachment & voice buttons when typing for more space on mobile
-// ✅ FIX: Attachment messages no longer show placeholder text below media
-// ✅ FIX: Exact time in tooltip now shows HH:MM (no seconds, no GMT)
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -151,14 +149,24 @@ const Chat = ({
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  // Input focus state (to hide attachment/voice buttons on mobile)
+  // Input focus state
   const [inputFocused, setInputFocused] = useState(false);
+
+  // Screen width for responsive adjustments
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
   const convIdNum = useMemo(() => {
     if (!effectiveConversationId || effectiveConversationId === "new") return null;
     const n = Number(effectiveConversationId);
     return Number.isFinite(n) ? n : null;
   }, [effectiveConversationId]);
+
+  // Track screen width
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -215,33 +223,18 @@ const Chat = ({
   // ----------------------------
   // Helpers
   // ----------------------------
-  // 🔧 IMPROVED: Extract attachment URL from various possible server fields
   const mapMessageData = useCallback(
-    (message) => {
-      let attachmentUrl = null;
-      if (message.attachment_url) {
-        attachmentUrl = message.attachment_url;
-      } else if (message.attachment) {
-        // If attachment is an object with a url property, use that; otherwise assume it's a string URL
-        attachmentUrl = typeof message.attachment === 'object' ? message.attachment.url : message.attachment;
-      } else if (message.file_url) {
-        attachmentUrl = message.file_url;
-      } else if (message.image_url) {
-        attachmentUrl = message.image_url;
-      }
-
-      return {
-        id: message.id,
-        text: message.content || "", // fallback to empty string
-        time: new Date(message.timestamp || message.created_at),
-        sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
-        read: !!message.read,
-        type: message.type || "text",
-        attachment: attachmentUrl,
-        deleted: message.deleted || false,
-        raw: message,
-      };
-    },
+    (message) => ({
+      id: message.id,
+      text: message.content,
+      time: new Date(message.timestamp || message.created_at),
+      sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
+      read: !!message.read,
+      type: message.type || "text",
+      attachment: message.attachment_url || null,
+      deleted: message.deleted || false,
+      raw: message,
+    }),
     [currentUser?.id]
   );
 
@@ -794,10 +787,9 @@ const Chat = ({
         }
 
         const tempId = `tmp-att-${Date.now()}`;
-        // 🔧 FIX: Set optimistic message text to empty string so no placeholder appears
         const optimistic = {
           id: tempId,
-          text: "", // was "📷 Photo" or "📎 Attachment"
+          text: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
           time: new Date(),
           sender: "me",
           read: false,
@@ -808,10 +800,9 @@ const Chat = ({
         };
         setMessages((prev) => [...prev, optimistic]);
 
-        // 🔧 FIX: Send empty content for attachment messages
         const ack = await safeSocketEmit("send_message", {
           conversation_id: convIdNum,
-          content: "", // was file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment"
+          content: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
           type: "attachment",
           attachment_url: uploadedUrl,
         });
@@ -912,10 +903,9 @@ const Chat = ({
       }
 
       const tempId = `tmp-voice-${Date.now()}`;
-      // 🔧 FIX: Set optimistic message text to empty string
       const optimistic = {
         id: tempId,
-        text: "", // was "🎤 Voice message"
+        text: "🎤 Voice message",
         time: new Date(),
         sender: "me",
         read: false,
@@ -926,10 +916,9 @@ const Chat = ({
       };
       setMessages((prev) => [...prev, optimistic]);
 
-      // 🔧 FIX: Send empty content for voice messages
       const ack = await safeSocketEmit("send_message", {
         conversation_id: convIdNum,
-        content: "", // was "🎤 Voice message"
+        content: "🎤 Voice message",
         type: "attachment",
         attachment_url: uploadedUrl,
       });
@@ -1103,6 +1092,9 @@ const Chat = ({
     }
   };
 
+  // Determine if we should hide the left buttons (attachment & voice)
+  const hideLeftButtons = screenWidth <= 400 && inputFocused;
+
   if (!token) return <Loading message="Checking authentication..." />;
 
   if (loading && messages.length === 0) {
@@ -1232,12 +1224,10 @@ const Chat = ({
               }
               const message = item.data;
               const relativeTime = getRelativeTime(new Date(message.time));
-
-              // 🔧 FIX: Format exact time as HH:MM (24-hour) without seconds or timezone
-              const date = new Date(message.time);
-              const hours = date.getHours().toString().padStart(2, '0');
-              const minutes = date.getMinutes().toString().padStart(2, '0');
-              const exactTime = `${hours}:${minutes}`;
+              const exactTime = new Date(message.time).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
 
               // If message is deleted, show placeholder
               const messageContent = message.deleted ? (
@@ -1295,15 +1285,13 @@ const Chat = ({
                       </div>
                     ) : (
                       <>
-                        {/* 🔧 FIX: Show text only if there's no attachment OR message is deleted */}
-                        {(!message.attachment || message.deleted) && (
-                          <div className="message-content">{messageContent}</div>
-                        )}
+                        <div className="message-content">{messageContent}</div>
                         {message.edited && !message.deleted && (
                           <span className="edited-indicator">(edited)</span>
                         )}
                       </>
                     )}
+
                     <div className="message-meta">
                       <span className="message-time" title={exactTime}>{relativeTime}</span>
 
@@ -1370,7 +1358,7 @@ const Chat = ({
 
       <form className="chat-input-area" onSubmit={handleSendMessage}>
         <div className="input-actions">
-          {!inputFocused && (
+          {!hideLeftButtons && (
             <button
               type="button"
               className="act-btn"
@@ -1382,7 +1370,7 @@ const Chat = ({
             </button>
           )}
 
-          {!inputFocused && (
+          {!hideLeftButtons && (
             <button
               type="button"
               className={`act-btn ${isRecording ? "recording" : ""}`}

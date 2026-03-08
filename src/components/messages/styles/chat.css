@@ -1,11 +1,8 @@
-/* ===========================
-   CHAT PAGE STYLES
-   =========================== */
 
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+ 
 }
 
 .chat-header {
@@ -510,12 +507,16 @@
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid #e5e7eb;
-  background: white;
+ background: white;
+  position:fixed;
+  bottom: 0;
+  width:80%;
   flex-shrink: 0;
 }
 
 .message-input-container {
   flex: 1;
+  min-width:0;
   position: relative;
 }
 
@@ -882,83 +883,6 @@
    RESPONSIVE CHAT
    =========================== */
 
-@media (max-width: 480px) {
-  .chat-header {
-    padding: 12px 12px;
-    gap: 10px;
-  }
-
-  .chat-header .action-btn,
-  .chat-header .back-btn {
-    width: 38px;
-    height: 38px;
-  }
-
-  .chat-header .chat-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius:50%;
-  }
-
-  .chat-user-details h3 {
-    font-size: 14px;
-  }
-
-  .message-attachment {
-    max-width: 240px;
-  }
-  
-  .attachment-image {
-    max-height: 250px;
-  }
-  
-  .attachment-video {
-    max-height: 220px;
-  }
-
-  .message {
-    max-width: 90%;
-  }
-
-  .message-content-wrapper {
-    max-width: 240px;
-  }
-
-  /* === IMPROVED MESSAGE INPUT AREA FOR SMALL SCREENS === */
-  .chat-input-area {
-    padding: 8px 10px;
-    gap: 6px;
-  }
-
-  .act-btn,
-  .send-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px; /* prevent shrinking */
-    font-size: 14px; /* adjust icon size if needed */
-  }
-
-  .input-actions {
-    gap: 4px;
-  }
-
-  .message-input-container {
-    flex: 1;
-    min-width: 0; /* allow shrinking below content width */
-  }
-
-  .message-input {
-    font-size: 16px;
-    padding: 10px 12px;
-    min-height: 42px;
-  }
-
-  .emoji-picker-wrapper {
-    left: auto;
-    right: 0;
-    bottom: 50px;
-  }
-}
 
 /* Optimistic message styling */
 .message[data-optimistic="true"] {
@@ -1822,17 +1746,11 @@
   background: var(--border-light);
   color: var(--text-primary);
 }
-/* ===========================
-   CHAT PAGE STYLES
-   =========================== */
 
-/* ... (keep all existing styles, only add/modify the sections below) ... */
-
-/* Message actions container – ensure it never shrinks */
 .message-actions-container {
   position: relative;
   margin-left: 8px;
-  flex-shrink: 0; /* ← prevents button from being compressed */
+  flex-shrink: 0; 
 }
 
 .message-actions-btn {
@@ -1922,7 +1840,6 @@
   position: absolute;
   top: -15px;
   right: 55px;
-        /* ensure it floats above other elements */
   min-width: 160px;
   background-color: #fff;
   border: 1px solid #e0e0e0;
@@ -2077,7 +1994,7 @@
 }
 
 /* Optional: adjust for small screens */
-@media (max-width: 480px) {
+@media (max-width: 699px) {
   .new-chat-container .input-with-icon {
     flex-wrap: wrap;
   }
@@ -2089,5 +2006,115 @@
   .cancel-btn {
     flex: 1;
     text-align: center;
+  }
+  .chat-input-area {
+    padding: 6px 8px;    
+    width: 100%;   
+    gap: 4px;                
+  }
+
+  .act-btn,
+  .send-btn {
+    width: 34px;             /* Slightly smaller than before */
+    height: 34px;
+    min-width: 34px;
+    font-size: 14px;
+  }
+
+  .input-actions {
+    gap: 2px;                /* Minimal gap between the two left buttons */
+  }
+
+  .message-input-container {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .message-input {
+    font-size: 16px;         /* Keep comfortable reading size */
+    padding: 10px 12px;
+    min-height: 44px;        /* Slightly taller for better touch target */
+  }
+
+  .emoji-picker-wrapper {
+    left: auto;
+    right: 0;
+    bottom: 50px;
+  }
+   .chat-header {
+    padding: 12px 12px;
+    gap: 10px;
+  }
+
+  .chat-header .action-btn,
+  .chat-header .back-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .chat-header .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius:50%;
+  }
+
+  .chat-user-details h3 {
+    font-size: 14px;
+  }
+
+  .message-attachment {
+    max-width: 240px;
+  }
+  
+  .attachment-image {
+    max-height: 250px;
+  }
+  
+  .attachment-video {
+    max-height: 220px;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .message-content-wrapper {
+    max-width: 240px;
+  }
+
+  /* === IMPROVED MESSAGE INPUT AREA FOR SMALL SCREENS === */
+  .chat-input-area {
+    padding: 8px 10px;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .act-btn,
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px; /* prevent shrinking */
+    font-size: 14px; /* adjust icon size if needed */
+  }
+
+  .input-actions {
+    gap: 4px;
+  }
+
+  .message-input-container {
+    flex: 1;
+    min-width: 0; /* allow shrinking below content width */
+  }
+
+  .message-input {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 42px;
+  }
+
+  .emoji-picker-wrapper {
+    left: auto;
+    right: 0;
+    bottom: 50px;
   }
 }

@@ -1,133 +1,160 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FaHeart, FaShieldAlt, FaUsers, FaCommentDots, FaArrowRight, FaCheckCircle } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaCheckCircle } from 'react-icons/fa';
 import './styles/LandingPage.css';
-import heroImage from '../../assets/hero-couple.jpg';
+import couple1 from '../../assets/couple1.jpg';
+import couple2 from '../../assets/couple2.jpg';
+import couple3 from '../../assets/couple3.jpg';
+import couple4 from '../../assets/couple4.jpg';
 
 const LandingPage = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [activeNav, setActiveNav] = useState('Home'); // active nav link
+  const sliderWrapperRef = useRef(null);
+  const heartContainerRef = useRef(null);
+  const totalSlides = 4;
+
+  const goToSlide = (index) => {
+    if (index < 0) index = 0;
+    if (index >= totalSlides) index = totalSlides - 1;
+    setCurrentIndex(index);
+    if (sliderWrapperRef.current) {
+      sliderWrapperRef.current.style.transform = `translateX(-${index * 100}%)`;
+    }
+  };
+
+  const nextSlide = () => {
+    const next = (currentIndex + 1) % totalSlides;
+    goToSlide(next);
+  };
+
+  const handleNavClick = (navName) => {
+    setActiveNav(navName);
+  };
+
+  useEffect(() => {
+    if (!heartContainerRef.current) return;
+
+    const handleMouseEnter = () => setIsPaused(true);
+    const handleMouseLeave = () => setIsPaused(false);
+
+    const element = heartContainerRef.current;
+    element.addEventListener('mouseenter', handleMouseEnter);
+    element.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      element.removeEventListener('mouseenter', handleMouseEnter);
+      element.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isPaused) {
+        nextSlide();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isPaused, currentIndex]);
+
   return (
     <div className="landing-page">
-      {/* Navigation */}
-      <nav className="landing-nav">
-        <div className="nav-container">
-          <div className="logo">
-            <FaHeart className="logo-icon" />
-            <span>Mubas Dates</span>
-          </div>
-          <div className="nav-links">
-            <Link to="/login" className="nav-link">Log in</Link>
-            <Link to="/register" className="nav-link landing-btn-primary">Sign up</Link>
-          </div>
-        </div>
-      </nav>
+      <header className="header">
+        <div className="logo">MDates</div>
+        <nav className="nav-links">
+          <Link 
+            to="/" 
+            className={`nav-link ${activeNav === 'Home' ? 'active' : ''}`}
+            onClick={() => handleNavClick('Home')}
+          >
+            Home
+          </Link>
+          <Link 
+            to="#features" 
+            className={`nav-link ${activeNav === 'Features' ? 'active' : ''}`}
+            onClick={() => handleNavClick('Features')}
+          >
+            How it works
+          </Link>
+          <Link 
+            to="#pricing" 
+            className={`nav-link ${activeNav === 'Pricing' ? 'active' : ''}`}
+            onClick={() => handleNavClick('Pricing')}
+          >
+            Pricing
+          </Link>
+          <Link 
+            to="/login" 
+            className={`nav-link ${activeNav === 'Login' ? 'active' : ''}`}
+            onClick={() => handleNavClick('Login')}
+          >
+            Login
+          </Link>
+          <Link 
+            to="/signup" 
+            className={`nav-link ${activeNav === 'Register' ? 'active' : ''}`}
+            onClick={() => handleNavClick('Register')}
+          >
+            Register
+          </Link>
+        </nav>
+      </header>
 
-      <section 
-        className="hero" 
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
-        <div className="hero-overlay">
+      <main>
+        <section className="hero">
           <div className="hero-content">
-            <h1>Find Your Perfect Match</h1>
-            <p className="hero-subtitle">
-              Join Mubas Dates and meet like-minded singles who share your interests and values.
-            </p>
-            <div className="hero-cta">
-              <Link to="/register" className="landing-btn landing-btn-primary landing-btn-large">
-                Get Started <FaArrowRight />
-              </Link>
-              <Link to="/about" className="landing-btn landing-btn-secondary landing-btn-large">
-                Learn More
-              </Link>
+            <h1>The search is over!</h1>
+            <div className="subhead">Meet your Perfect Match</div>
+            <div className="attract-line">
+              <FaHeart className="icon-heart" style={{ fontSize: '0.9rem' }} />
+              <span>find your missing piece</span>
+              <FaHeart className="icon-heart" style={{ fontSize: '0.9rem' }} />
+            </div>
+            <div className="button-group">
+              <Link to="/signup" className="btn btn-primary">Get started</Link>
+              <Link to="#more" className="btn btn-outline">View More</Link>
+            </div>
+            <div className="badge-trust">
+              <FaCheckCircle className="icon-check-circle" />
+              <span>thousands of happy couples</span>
+              <FaRegHeart className="icon-regular-heart" style={{ marginLeft: '0.5rem' }} />
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="features">
-        <h2>Why Choose Mubas Dates?</h2>
-        <div className="features-grid">
-          <div className="feature-card">
-            <FaHeart className="feature-icon" />
-            <h3>Meaningful Matches</h3>
-            <p>Our algorithm focuses on compatibility, not just looks.</p>
-          </div>
-          <div className="feature-card">
-            <FaShieldAlt className="feature-icon" />
-            <h3>Safe & Secure</h3>
-            <p>Your privacy and safety are our top priorities.</p>
-          </div>
-          <div className="feature-card">
-            <FaUsers className="feature-icon" />
-            <h3>Active Community</h3>
-            <p>Thousands of genuine users looking for real connections.</p>
-          </div>
-          <div className="feature-card">
-            <FaCommentDots className="feature-icon" />
-            <h3>Easy Communication</h3>
-            <p>Chat, share photos, and get to know each other.</p>
-          </div>
-        </div>
-      </section>
+          <div className="hero-visual">
+            <div className="heart-illustration" ref={heartContainerRef}>
+              <div className="heart-icon-slider">
+                <div className="slider-container">
+                  <div className="slider-wrapper" ref={sliderWrapperRef}>
+                    <img src={couple1} alt="couple sunset" loading="lazy" />
+                    <img src={couple2} alt="couple hugging" loading="lazy" />
+                    <img src={couple3} alt="romantic outdoors" loading="lazy" />
+                    <img src={couple4} alt="happy couple" loading="lazy" />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      {/* How It Works */}
-      <section className="how-it-works">
-        <h2>How It Works</h2>
-        <div className="steps">
-          <div className="step">
-            <div className="step-number">1</div>
-            <h3>Create Your Profile</h3>
-            <p>Tell us about yourself and what you're looking for.</p>
+            <div className="slider-dots">
+              {[0, 1, 2, 3].map((index) => (
+                <button
+                  key={index}
+                  className={`dot ${currentIndex === index ? 'active' : ''}`}
+                  data-index={index}
+                  onClick={() => goToSlide(index)}
+                  aria-label={`slide ${index + 1}`}
+                ></button>
+              ))}
+            </div>
           </div>
-          <div className="step">
-            <div className="step-number">2</div>
-            <h3>Discover Matches</h3>
-            <p>Browse through profiles that match your preferences.</p>
-          </div>
-          <div className="step">
-            <div className="step-number">3</div>
-            <h3>Start Connecting</h3>
-            <p>Send a like or a message and begin your journey.</p>
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* Testimonials */}
-      <section className="testimonials">
-        <h2>Success Stories</h2>
-        <div className="testimonial-grid">
-          <div className="testimonial-card">
-            <p>"I found my soulmate within a week. The matches were incredibly accurate!"</p>
-            <div className="testimonial-author">- Sarah & Mike</div>
-          </div>
-          <div className="testimonial-card">
-            <p>"Finally a dating app that focuses on personality, not just photos."</p>
-            <div className="testimonial-author">- David</div>
-          </div>
-          <div className="testimonial-card">
-            <p>"The community here is so genuine. Highly recommended!"</p>
-            <div className="testimonial-author">- Emily</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-content">
-          <div className="footer-logo">
-            <FaHeart /> Mubas Dates
-          </div>
-          <div className="footer-links">
-            <Link to="/about">About</Link>
-            <Link to="/privacy">Privacy</Link>
-            <Link to="/terms">Terms</Link>
-            <Link to="/contact">Contact</Link>
-          </div>
-          <div className="footer-copyright">
-            © {new Date().getFullYear()} Mubas Dates. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <div className="footer-note">
+        <span>MDates</span> — heart‑shaped memories· © 2026
+      </div>
     </div>
   );
 };

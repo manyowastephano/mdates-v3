@@ -1,3 +1,4 @@
+/* Dashboard.css – updated for exactly 2 cards per row */
 
 .dashboard-page {
   display: flex;
@@ -74,19 +75,33 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Users grid */
-.users-grid-container {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 8px;
-  margin-bottom: 16px;
+/* ===== USER LIST – 2 CARDS PER ROW ON ALL SCREENS ===== */
+.user-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* always two columns */
+  gap: 20px;
+  width: 100%;
+  padding-bottom: 20px;
 }
 
+/* Optional: adjust gap on smaller screens */
+@media (max-width: 768px) {
+  .user-list {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-list {
+    gap: 12px;
+  }
+}
+
+/* Users grid (legacy – kept if used elsewhere, but not required) */
 .users-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
-  padding-bottom: 20px;
 }
 
 /* Search styles for dashboard */
@@ -206,7 +221,7 @@
   flex: 1;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling for any scrollable container */
 .users-grid-container::-webkit-scrollbar {
   width: 6px;
 }
@@ -224,13 +239,11 @@
   background: var(--text-tertiary);
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments – ensure 2 columns remain */
 @media (max-width: 1200px) {
-  .users-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+  .user-list {
+    grid-template-columns: repeat(2, 1fr) !important; /* force 2 columns */
   }
-  
   .filter-tab {
     padding: 8px 16px;
     font-size: 13px;
@@ -242,12 +255,9 @@
     height: 50vh;
     min-height: 400px;
   }
-  
-  .users-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
+  .user-list {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
-  
   .page-header h1 {
     font-size: 22px;
   }
@@ -258,23 +268,19 @@
     height: auto;
     min-height: 300px;
   }
-  
-  .users-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
+  .user-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
   }
-  
   .filter-tabs {
     padding: 4px;
     gap: 6px;
   }
-  
   .filter-tab {
     padding: 6px 12px;
     font-size: 12px;
     min-width: 70px;
   }
-  
   .empty-state {
     padding: 40px 16px;
     margin: 16px 0;
@@ -282,21 +288,23 @@
 }
 
 @media (max-width: 480px) {
-  .users-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .user-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
   }
-  
+  .dashboard-page {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
   .dashboard-search {
     padding: 8px 14px;
   }
-  
   .empty-state {
     padding: 32px 12px;
   }
 }
 
-/* Card hover effects */
+/* Card hover effects (from original) */
 .user-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -306,8 +314,8 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Animation for grid items */
-.users-grid {
+/* Animation for grid items (applied to .user-list > *) */
+.user-list {
   animation: fadeIn 0.5s ease forwards;
 }
 
@@ -323,16 +331,16 @@
 }
 
 /* Stagger animation for grid items */
-.users-grid > *:nth-child(1) { animation-delay: 0.05s; }
-.users-grid > *:nth-child(2) { animation-delay: 0.1s; }
-.users-grid > *:nth-child(3) { animation-delay: 0.15s; }
-.users-grid > *:nth-child(4) { animation-delay: 0.2s; }
-.users-grid > *:nth-child(5) { animation-delay: 0.25s; }
-.users-grid > *:nth-child(6) { animation-delay: 0.3s; }
-.users-grid > *:nth-child(7) { animation-delay: 0.35s; }
-.users-grid > *:nth-child(8) { animation-delay: 0.4s; }
-.users-grid > *:nth-child(9) { animation-delay: 0.45s; }
-.users-grid > *:nth-child(10) { animation-delay: 0.5s; }
+.user-list > *:nth-child(1) { animation-delay: 0.05s; }
+.user-list > *:nth-child(2) { animation-delay: 0.1s; }
+.user-list > *:nth-child(3) { animation-delay: 0.15s; }
+.user-list > *:nth-child(4) { animation-delay: 0.2s; }
+.user-list > *:nth-child(5) { animation-delay: 0.25s; }
+.user-list > *:nth-child(6) { animation-delay: 0.3s; }
+.user-list > *:nth-child(7) { animation-delay: 0.35s; }
+.user-list > *:nth-child(8) { animation-delay: 0.4s; }
+.user-list > *:nth-child(9) { animation-delay: 0.45s; }
+.user-list > *:nth-child(10) { animation-delay: 0.5s; }
 
 /* Active states */
 .filter-tab:active,

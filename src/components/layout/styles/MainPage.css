@@ -4,8 +4,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-light);
-  padding: 20px;
+  padding:2px !important;
+  margin:0 !important;
 }
 
 .main-page-content {
@@ -18,8 +18,8 @@
 
 /* Dashboard Section */
 .dashboard-section {
-  flex: 2; /* Takes 2/3 of the space */
-  min-width: 0; /* Allows flex child to shrink */
+  flex: 2; 
+  min-width: 0; 
   overflow-y: auto;
   background: var(--white);
   border-radius: var(--radius-lg);
@@ -233,12 +233,6 @@
     flex: 1;
   }
 }
-
-/* MainPage.css – add floating button styles */
-
-/* Existing styles remain unchanged, add these at the end */
-
-/* Floating Action Button for Messages (mobile) */
 .messages-fab {
   position: fixed;
   bottom: 24px;
@@ -284,12 +278,8 @@
     font-size: 14px;
   }
 }
-
-/* Ensure the main content does not get overlapped by the FAB */
 @media (max-width: 768px) {
   .main-page-container {
-    padding-bottom: 80px; /* give space for the FAB */
+    padding-bottom: 80px; 
   }
 }
-
-/* Keep your existing media queries for stacking, etc. */

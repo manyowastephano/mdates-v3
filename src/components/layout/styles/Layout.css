@@ -1,12 +1,11 @@
-/* components/layout/styles/Layout.css */
 
 .app-container {
   width: 100%;
   min-height: 100vh;
   display: flex;
   background: var(--bg-light);
-  justify-content: center;          /* Keep horizontal centering */
-  align-items: flex-start;          /* Start from the top – no vertical centering */
+  justify-content: center;          
+  align-items: flex-start;          
 }
 
 .main-content {
@@ -49,13 +48,6 @@
   background: rgba(0, 0, 0, 0.5);
   z-index: 1999;
   backdrop-filter: blur(4px);
-}
-
-/* Remove fixed bottom-nav padding – now conditionally hidden */
-@media (max-width: 768px) {
-  .main-content-area {
-    /* padding-bottom: 70px;  – removed */
-  }
 }
 
 @media (min-width: 769px) {

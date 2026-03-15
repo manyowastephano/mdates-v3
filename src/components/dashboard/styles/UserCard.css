@@ -53,6 +53,7 @@
   width: 100%;
   min-height: 380px;
   height: auto;
+  
 }
 
 .user-card.hovered {
@@ -115,7 +116,7 @@
   color: white;
   font-size: 12px;
   font-weight: 600;
-  padding: 10px;
+  padding: 5px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -318,9 +319,11 @@
     padding: 3px 8px;
   }
 
+  /* ===== VIEW PROFILE BUTTON FIX ===== */
   .view-profile-btn {
     font-size: 0.8rem;
     padding: 8px 10px;
+    white-space: nowrap;       /* prevent text wrapping */
   }
 
   .quick-action-btn {
@@ -331,8 +334,8 @@
 
   /* ===== MATCH BADGE ADJUSTMENT FOR SMALL SCREENS ===== */
   .user-meta {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     top: 2px;
     right: 2px;
   }
@@ -343,8 +346,16 @@
   }
 }
 
-/* Extra small screens (480px and below) – further shrink the badge */
+/* Extra small screens (480px and below) – further adjust button and badge */
 @media (max-width: 480px) {
+  /* View Profile button – even smaller font and padding */
+  .view-profile-btn {
+    font-size: 0.7rem;
+    padding: 6px 4px;
+    white-space: nowrap;
+  }
+
+  /* Match badge – smaller still */
   .user-meta {
     width: 30px;
     height: 30px;
@@ -357,10 +368,8 @@
     padding: 4px;
   }
 
-  /* Optional: hide the heart icon on very tiny screens to save space */
+  /* Optional: hide heart icon on very tiny screens to save space */
   .math-badge svg {
-    display: none; /* removes the heart, leaving only the number */
+    display: none;
   }
-
-  /* If you want to keep the heart but make it smaller, you can adjust its size via font-size (already inherited) */
 }

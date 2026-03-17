@@ -1,20 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProfileCard from './ProfileCard';
 import Loading from '../common/Loading';
 import { API_ENDPOINTS, fetchJSON } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   FaChevronCircleLeft, 
   FaChevronCircleRight, 
-  FaList, 
   FaMapMarkedAlt, 
   FaRedo, 
   FaSpinner, 
-  FaSync, 
-  FaThLarge 
+  FaSync,
+  FaBriefcase
 } from 'react-icons/fa';
 import './styles/matches.css';
+
+// Helper to calculate age from date_of_birth or return profile.age
+const getProfileAge = (profile) => {
+  if (profile.age) return profile.age;
+  if (profile.date_of_birth) {
+    const dob = new Date(profile.date_of_birth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  }
+  return null;
+};
 
 const AlignPage = () => {
   const [profiles, setProfiles] = useState([]);
@@ -22,14 +36,12 @@ const AlignPage = () => {
   const [loading, setLoading] = useState(true);
   const [hasMoreProfiles, setHasMoreProfiles] = useState(true);
   const [matchNotification, setMatchNotification] = useState(null);
-  const [viewMode, setViewMode] = useState('swipe');
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { user, userId, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    
     if (!isAuthenticated) {
       navigate('/login');
       return;
@@ -41,15 +53,12 @@ const AlignPage = () => {
     setLoading(true);
     setError(null);
     try {
-      
       const data = await fetchJSON(API_ENDPOINTS.USERS, {
         method: 'GET',
       });
       
-      
       const filteredProfiles = Array.isArray(data) 
         ? data.filter(profile => {
-            
             const profileId = profile.id || profile.user_id || profile._id;
             const currentUserId = userId || user?.id || user?.user_id || user?._id;
             return profileId?.toString() !== currentUserId?.toString();
@@ -86,7 +95,6 @@ const AlignPage = () => {
       });
       
       if (Array.isArray(data)) {
-        
         const currentUserId = userId || user?.id || user?.user_id || user?._id;
         const moreProfiles = data.filter(profile => {
           const profileId = profile.id || profile.user_id || profile._id;
@@ -113,7 +121,6 @@ const AlignPage = () => {
     if (!currentProfile) return;
     
     try {
-     
       const result = await fetchJSON(API_ENDPOINTS.LIKES, {
         method: 'POST',
         body: JSON.stringify({
@@ -122,7 +129,6 @@ const AlignPage = () => {
         })
       });
       
-      // Check if it's a match
       if (result.is_match || result.match_created) {
         setMatchNotification({
           user1: { 
@@ -154,7 +160,6 @@ const AlignPage = () => {
     if (!currentProfile) return;
     
     try {
-
       await fetchJSON(API_ENDPOINTS.DISLIKES, {
         method: 'POST',
         body: JSON.stringify({
@@ -164,7 +169,6 @@ const AlignPage = () => {
       });
     } catch (error) {
       console.error('Error sending pass:', error);
-    
     }
     
     nextProfile();
@@ -182,7 +186,6 @@ const AlignPage = () => {
     }
     
     try {
-      
       const data = await fetchJSON(API_ENDPOINTS.CHAT_EXISTS(profileId), {
         method: 'GET',
       });
@@ -190,7 +193,6 @@ const AlignPage = () => {
       if (data.conversation_id) {
         navigate(`/messages/${data.conversation_id}`);
       } else {
-        
         navigate(`/messages/new`, { state: { user: currentProfile } });
       }
     } catch (error) {
@@ -205,7 +207,6 @@ const AlignPage = () => {
     } else if (hasMoreProfiles) {
       loadMoreProfiles();
     } else {
-      
       setCurrentProfileIndex(profiles.length);
     }
   };
@@ -236,6 +237,45 @@ const AlignPage = () => {
     return `${Math.round(profile.distance)} km away`;
   };
 
+  // Simple profile card component with age display
+  const SimpleProfileCard = ({ profile, onLike, onPass, onMessage, onProfileClick }) => {
+    const firstName = profile.first_name || profile.name || 'User';
+    const age = getProfileAge(profile);
+    const distanceText = getDistanceText(profile);
+    const profilePicture = profile.profile_picture;
+    const job = profile.occupation || profile.job_title || '';
+
+    return (
+      <div className="simple-profile-card">
+        <div className="simple-card-image" onClick={() => onProfileClick(profile)}>
+          {profilePicture ? (
+            <img src={profilePicture} alt={firstName} />
+          ) : (
+            <div className="image-placeholder" style={{ background: 'linear-gradient(135deg, #003A8F, #60a5fa)' }} />
+          )}
+          <div className="image-overlay">
+            <h2>{firstName}{age ? `, ${age}` : ''}</h2>
+            <div className="distance-info">
+              <FaMapMarkedAlt /> {distanceText}
+            </div>
+          </div>
+        </div>
+        {job && (
+          <div className="simple-card-info">
+            <div className="info-item">
+              <FaBriefcase /> <span>{job}</span>
+            </div>
+          </div>
+        )}
+        <div className="simple-card-actions">
+          <button className="action-btn pass" onClick={onPass}>✕</button>
+          <button className="action-btn like" onClick={onLike}>♥</button>
+          <button className="action-btn message" onClick={onMessage}>💬</button>
+        </div>
+      </div>
+    );
+  };
+
   const currentProfile = profiles[currentProfileIndex];
 
   if (loading && profiles.length === 0) {
@@ -252,23 +292,6 @@ const AlignPage = () => {
         <div className="header-content">
           <h1>Find Your Match</h1>
           <p>Intent-based matching · Quality over quantity</p>
-        </div>
-        
-        <div className="view-toggle">
-          <button
-            className={`view-btn ${viewMode === 'swipe' ? 'active' : ''}`}
-            onClick={() => setViewMode('swipe')}
-            title="Swipe view"
-          >
-            <FaThLarge style={{ width: '20px'}} />
-          </button>
-          <button
-            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => setViewMode('grid')}
-            title="Grid view"
-          >
-            <FaList style={{ width: '20px'}} />
-          </button>
         </div>
       </div>
 
@@ -310,118 +333,49 @@ const AlignPage = () => {
         </div>
       )}
 
-      {viewMode === 'swipe' ? (
-        <div className="swipe-container">
-          {currentProfile ? (
-            <ProfileCard
-              key={currentProfile.id || currentProfile.user_id || currentProfile._id} 
-              profile={currentProfile}
-              onLike={handleLike}
-              onPass={handlePass}
-              onMessage={handleMessage}
-              onProfileClick={goToProfile}
-              currentIndex={currentProfileIndex}
-              totalProfiles={profiles.length}
-              disableSwipe={true} 
-            />
-          ) : (
-            <div className="no-more-profiles">
-              <div className="empty-state">
-                <div className="empty-icon">💝</div>
-                <h2>You've seen everyone!</h2>
-                <p>Check back later for new matches in your area.</p>
-                <div className="empty-actions">
-                  <button
-                    className="auth-button secondary"
-                    onClick={resetProfiles}
-                  >
-                    <FaRedo style={{ width: '20px'}} /> Reset & Review
-                  </button>
-                  <button
-                    className="auth-button"
-                    onClick={loadMoreProfiles}
-                    disabled={!hasMoreProfiles || loading}
-                  >
-                    {loading ? (
-                      <>
-                        <FaSpinner style={{ width: '20px'}} /> Loading...
-                      </>
-                    ) : (
-                      <>
-                        <FaSync style={{ width: '20px'}} /> Load More
-                      </>
-                    )}
-                  </button>
-                </div>
+      <div className="swipe-container">
+        {currentProfile ? (
+          <SimpleProfileCard
+            key={currentProfile.id || currentProfile.user_id || currentProfile._id}
+            profile={currentProfile}
+            onLike={handleLike}
+            onPass={handlePass}
+            onMessage={handleMessage}
+            onProfileClick={goToProfile}
+          />
+        ) : (
+          <div className="no-more-profiles">
+            <div className="empty-state">
+              <div className="empty-icon">💝</div>
+              <h2>You've seen everyone!</h2>
+              <p>Check back later for new matches in your area.</p>
+              <div className="empty-actions">
+                <button
+                  className="auth-button secondary"
+                  onClick={resetProfiles}
+                >
+                  <FaRedo /> Reset & Review
+                </button>
+                <button
+                  className="auth-button"
+                  onClick={loadMoreProfiles}
+                  disabled={!hasMoreProfiles || loading}
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner /> Loading...
+                    </>
+                  ) : (
+                    <>
+                      <FaSync /> Load More
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-          )}
-
-          <div className="navigation-controls">
-            <button
-              className="nav-btn prev-btn"
-              onClick={previousProfile}
-              disabled={currentProfileIndex === 0}
-            >
-              <FaChevronCircleLeft style={{ width: '20px'}} /> Previous
-            </button>
-            
-            <div className="profile-counter">
-              <span className="current">{currentProfileIndex + 1}</span>
-              <span className="separator">/</span>
-              <span className="total">{profiles.length}</span>
-            </div>
-            
-            <button
-              className="nav-btn next-btn"
-              onClick={nextProfile}
-              disabled={!currentProfile}
-            >
-              Next 
-              <FaChevronCircleRight /> 
-            </button>
           </div>
-        </div>
-      ) : (
-        <div className="grid-view">
-          <div className="profiles-grid">
-            {profiles.map((profile, index) => {
-              const profileId = profile.id || profile.user_id || profile._id;
-              return (
-                <div
-                  key={profileId || index}
-                  className="profile-grid-item"
-                  onClick={() => {
-                    setCurrentProfileIndex(index);
-                    setViewMode('swipe');
-                  }}
-                >
-                  <div 
-                    className="grid-avatar"
-                    style={{ 
-                      background: profile.profile_picture 
-                        ? `url(${profile.profile_picture}) center/cover no-repeat`
-                        : "linear-gradient(135deg, #8b5cf6, #ec4899)"
-                    }}
-                  >
-                    <span className="grid-name">
-                      {profile.first_name || profile.name || 'User'}, {profile.age || ''}
-                    </span>
-                  </div>
-                  <div className="grid-info">
-                    <h4>{profile.first_name || profile.name || 'User'}, {profile.age || ''}</h4>
-                    <p>{profile.occupation || profile.job_title || 'Not specified'}</p>
-                    <div className="grid-distance">
-                      <FaMapMarkedAlt style={{ width: '20px'}} /> 
-                      {getDistanceText(profile)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

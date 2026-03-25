@@ -14,15 +14,19 @@
   flex-direction: column;
   width: 100%;
 }
+
 .header {
   width: 100%;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: nowrap;                
+  flex-wrap: wrap;
   gap: 1rem;
+  position: relative;
+  background: var(--bg-light, #F8FAFC);
 }
+
 .logo {
   font-size: 1.8rem;
   font-weight: 700;
@@ -34,9 +38,10 @@
   border: 2px solid rgba(0, 58, 143, 0.2);
   padding: 0.2rem 1rem 0.2rem 0.8rem;
   border-radius: 60px;
-  white-space: nowrap;                
-  flex-shrink: 0;                    
+  white-space: nowrap;
+  flex-shrink: 1;
 }
+
 .nav-links {
   display: flex;
   gap: 2rem;
@@ -44,6 +49,7 @@
   flex-wrap: wrap;
   font-weight: 500;
 }
+
 .nav-links a {
   text-decoration: none;
   color: var(--text-secondary, #6B7280);
@@ -62,17 +68,17 @@
 
 .hero {
   width: 100%;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3rem;
+  gap: 2rem;
   margin: 1rem auto 2rem;
 }
 
 .hero-content {
   flex: 1 1 400px;
-  padding-left: 1rem;
+  padding-left: 0;
 }
 
 .hero-content h1 {
@@ -182,14 +188,11 @@
   position: relative;
   width: 70%;
   height: 70%;
-  clip-path: url(#smoothHeart);  
+  clip-path: url(#smoothHeart);
   overflow: hidden;
   background: transparent;
   box-shadow: 0 10px 18px rgba(0, 58, 143, 0.2);
   transition: transform 0.2s;
-}
-.heart-icon-slider:hover {
-  transform: scale(1.02);
 }
 .heart-icon-slider:hover {
   transform: scale(1.02);
@@ -287,25 +290,10 @@
   margin-left: 0.5rem;
 }
 
-.footer-note {
-  text-align: center;
-  margin-top: 3rem;
-  padding: 2rem;
-  color: var(--text-tertiary, #9CA3AF);
-  font-size: 0.9rem;
-  border-top: 1px solid var(--border-light, #F3F4F6);
-  width: 100%;
-}
-
-.footer-note span {
-  color: var(--mubas-blue, #003A8F);
-  font-weight: 600;
-}
-
-/* ----- Sections ----- */
+/* Sections */
 .section-header {
   text-align: center;
-  margin: 4rem 0 2.5rem;
+  margin: 3rem 0 2rem;
 }
 
 .section-header h2 {
@@ -323,7 +311,7 @@
 }
 
 .features-section {
-  padding: 2rem 2rem 3rem;
+  padding: 1rem 2rem 3rem;
   background: var(--bg-light, #F8FAFC);
 }
 
@@ -378,7 +366,7 @@
 }
 
 .how-it-works {
-  padding: 2rem 2rem 4rem;
+  padding: 1rem 2rem 4rem;
   background: white;
 }
 
@@ -427,15 +415,15 @@
 
 .cta-section {
   background: linear-gradient(135deg, var(--mubas-blue, #003A8F), #002b6a);
-  border-radius: 3rem;
-  padding: 4rem 2rem;
+  border-radius: 2rem;
+  padding: 3rem 2rem;
   margin: 2rem 2rem 4rem;
   color: white;
   text-align: center;
 }
 
 .cta-section h2 {
-  font-size: 2.8rem;
+  font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
@@ -455,7 +443,7 @@
   background: var(--mubas-gold, #F4C430);
   color: var(--mubas-blue, #003A8F);
   border: none;
-  padding: 1rem 3rem;
+  padding: 0.8rem 2rem;
   border-radius: 3rem;
   font-weight: 700;
   font-size: 1.2rem;
@@ -552,13 +540,12 @@
   vertical-align: middle;
 }
 
-
 .mobile-visible-links {
-  display: none; 
+  display: none;
 }
 
 .hamburger-icon {
-  display: none; 
+  display: none;
   background: none;
   border: none;
   font-size: 1.8rem;
@@ -584,8 +571,8 @@
   display: block;
   width: 24px;
   height: 4px;
-  background-color: currentColor;  
-  border-radius: 50%;              
+  background-color: currentColor;
+  border-radius: 50%;
   transition: background-color 0.2s, width 0.2s;
   margin: 2.5px 0;
 }
@@ -620,23 +607,11 @@
   transform: translateY(-4px);
 }
 
-/* Optional: adjust for smaller screens */
-@media (max-width: 768px) {
-  .scroll-to-top {
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 45px;
-    height: 45px;
-    font-size: 1.3rem;
-  }
-}
-/* On mobile (≤800px) */
+/* Mobile specific styles */
 @media (max-width: 800px) {
   .header {
-    flex-wrap: nowrap;               /* force no wrap */
-    padding: 1rem;                   /* reduce padding if needed */
-    overflow-x: auto;                 /* allow horizontal scroll if content overflows */
-    -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
   }
 
   .desktop-nav {
@@ -646,36 +621,183 @@
   .mobile-visible-links {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-left: auto;                /* push to right */
-    flex-shrink: 0;                    /* prevent shrinking */
-    white-space: nowrap;               /* keep links in one line */
+    gap: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .mobile-visible-link {
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-secondary, #6B7280);
-    white-space: nowrap;               /* prevent individual link text wrapping */
+    white-space: nowrap;
   }
 
   .hamburger-icon {
     display: block;
-    margin-left: 0.5rem;
-    flex-shrink: 0;                    /* prevent shrinking */
-  }
-
-  /* Optional: if you want to hide scrollbar but keep functionality */
-  .header::-webkit-scrollbar {
-    display: none;
-  }
-  .header {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;      /* Firefox */
+    margin-left: 0.25rem;
+    flex-shrink: 0;
   }
 }
-/* Sidebar overlay */
+
+/* Extra adjustments for very small screens */
+@media (max-width: 650px) {
+  .logo {
+    font-size: 1.4rem;
+    padding: 0.15rem 0.8rem 0.15rem 0.6rem;
+  }
+
+  .mobile-visible-link {
+    font-size: 0.75rem;
+  }
+
+  .mobile-visible-links {
+    gap: 0.6rem;
+  }
+
+  .hamburger-icon {
+    font-size: 1.5rem;
+  }
+
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero-content .subhead {
+    font-size: 1.5rem;
+  }
+
+  .btn {
+    padding: 0.7rem 1.6rem;
+    font-size: 1rem;
+  }
+
+  .hero {
+    gap: 1.5rem;
+    padding: 0 1rem;
+  }
+
+  .section-header h2 {
+    font-size: 2rem;
+  }
+
+  .section-header p {
+    font-size: 1rem;
+  }
+
+  .cta-section h2 {
+    font-size: 1.8rem;
+  }
+
+  .cta-section {
+    padding: 2rem 1rem;
+    margin: 1rem 1rem 2rem;
+    border-radius: 1.5rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+    padding: 0.1rem 0.6rem 0.1rem 0.5rem;
+  }
+
+  .mobile-visible-links {
+    gap: 0.5rem;
+  }
+
+  .mobile-visible-link {
+    font-size: 0.7rem;
+  }
+
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+
+  .hero-content .subhead {
+    font-size: 1.2rem;
+    padding-left: 0.8rem;
+  }
+
+  .button-group {
+    gap: 0.8rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .badge-trust {
+    font-size: 0.8rem;
+    gap: 0.6rem;
+  }
+
+  .heart-illustration {
+    width: 240px;
+    height: 240px;
+  }
+
+  .heart-icon-slider {
+    width: 68%;
+    height: 68%;
+  }
+
+  .features-grid {
+    gap: 1rem;
+  }
+
+  .step {
+    padding: 1.5rem 1rem;
+  }
+
+  .step h4 {
+    font-size: 1.1rem;
+  }
+
+  .cta-button {
+    font-size: 1rem;
+    padding: 0.6rem 1.5rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .social-icons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .hero-content h1 {
+    font-size: 1.8rem;
+  }
+
+  .hero-content .subhead {
+    font-size: 1rem;
+  }
+
+  .heart-illustration {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+/* Sidebar styles */
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -692,12 +814,11 @@
   to { opacity: 1; }
 }
 
-/* Sidebar from the right - FIXED to always stay on right and visible */
 .sidebar-right {
   position: fixed;
   top: 0;
-  right: 0 !important;        /* force right alignment */
-  left: auto !important;       /* prevent any left override */
+  right: 0 !important;
+  left: auto !important;
   width: 80%;
   max-width: 400px;
   height: 100vh;
@@ -706,10 +827,8 @@
   box-shadow: -2px 0 20px rgba(0, 0, 0, 0.1);
   padding: 2rem;
   overflow-y: auto;
-  animation: slideInRight 0.3s ease-out forwards; /* keep final state */
-  /* Ensure no transition on left/right properties */
+  animation: slideInRight 0.3s ease-out forwards;
   transition: none;
-  /* Ensure it's visible */
   display: block;
   visibility: visible;
   opacity: 1;
@@ -722,7 +841,7 @@
 
 .sidebar-header {
   display: flex;
-  justify-content: flex-start; /* close button at top left */
+  justify-content: flex-start;
   margin-bottom: 2rem;
 }
 
@@ -762,56 +881,12 @@
   border-bottom-color: var(--mubas-gold, #F4C430);
 }
 
-/* Small screen adjustments */
 @media (max-width: 600px) {
-  .mobile-visible-link {
-    font-size: 0.8rem;
-  }
   .sidebar-right {
     width: 85%;
     padding: 1.5rem;
   }
   .sidebar-link {
     font-size: 1.2rem;
-  }
-}
-
-/* Extra small screens */
-@media (max-width: 480px) {
-  .hero-content h1 {
-    font-size: 2.2rem;
-  }
-  .hero-content .subhead {
-    font-size: 1.3rem;
-  }
-  .btn {
-    padding: 0.7rem 1.6rem;
-    font-size: 1rem;
-  }
-  .heart-illustration {
-    width: min(70vw, 300px);
-    height: min(70vw, 300px);
-  }
-  .heart-icon-slider {
-    width: 68%;
-    height: 68%;
-  }
-  .dot {
-    width: 14px;
-    height: 14px;
-  }
-  .hero {
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 380px) {
-  .heart-illustration {
-    width: 260px;
-    height: 260px;
-  }
-  .heart-icon-slider {
-    width: 65%;
-    height: 65%;
   }
 }

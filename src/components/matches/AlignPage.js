@@ -10,26 +10,36 @@ import {
   FaRedo, 
   FaSpinner, 
   FaSync,
-  FaBriefcase
+  FaBriefcase,
+  FaGraduationCap,
+  FaUserFriends,
+  FaCheckCircle,
+  FaHeart,
+  FaTimes,
+  FaComment
 } from 'react-icons/fa';
 import './styles/matches.css';
-
-// Helper to calculate age from date_of_birth or return profile.age
 const getProfileAge = (profile) => {
+  // If age is directly provided
   if (profile.age) return profile.age;
-  if (profile.date_of_birth) {
-    const dob = new Date(profile.date_of_birth);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-    return age;
-  }
-  return null;
-};
 
+  // Try various possible birth date fields
+  const dob = profile.date_of_birth || profile.birth_date || profile.dob || profile.birthday;
+  if (dob) {
+    const birthDate = new Date(dob);
+    // Check if the date is valid
+    if (!isNaN(birthDate.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+  }
+  return null; // Age unknown
+};
 const AlignPage = () => {
   const [profiles, setProfiles] = useState([]);
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
@@ -116,7 +126,8 @@ const AlignPage = () => {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e) => {
+    e.stopPropagation(); // Prevent parent card click
     const currentProfile = profiles[currentProfileIndex];
     if (!currentProfile) return;
     
@@ -137,7 +148,7 @@ const AlignPage = () => {
             initials: "Y" 
           },
           user2: { 
-            name: currentProfile.first_name || currentProfile.name || 'User', 
+           name: currentProfile.first_name || (currentProfile.name && currentProfile.name.split(' ')[0]) || 'User', 
             color: currentProfile.profile_picture ? 'transparent' : "linear-gradient(135deg, #8b5cf6, #ec4899)", 
             initials: (currentProfile.first_name || currentProfile.name || 'U').charAt(0) 
           },
@@ -155,7 +166,8 @@ const AlignPage = () => {
     nextProfile();
   };
 
-  const handlePass = async () => {
+  const handlePass = async (e) => {
+    e.stopPropagation(); // Prevent parent card click
     const currentProfile = profiles[currentProfileIndex];
     if (!currentProfile) return;
     
@@ -174,7 +186,8 @@ const AlignPage = () => {
     nextProfile();
   };
 
-  const handleMessage = async () => {
+  const handleMessage = async (e) => {
+    e.stopPropagation(); // Prevent parent card click
     const currentProfile = profiles[currentProfileIndex];
     if (!currentProfile) return;
     
@@ -237,41 +250,64 @@ const AlignPage = () => {
     return `${Math.round(profile.distance)} km away`;
   };
 
-  // Simple profile card component with age display
-  const SimpleProfileCard = ({ profile, onLike, onPass, onMessage, onProfileClick }) => {
-    const firstName = profile.first_name || profile.name || 'User';
+  // Enhanced profile card component with safe data handling
+  const EnhancedProfileCard = ({ profile, onLike, onPass, onMessage, onProfileClick }) => {
+    const firstName = profile.first_name || (profile.name && profile.name.split(' ')[0]) || 'User';
     const age = getProfileAge(profile);
     const distanceText = getDistanceText(profile);
     const profilePicture = profile.profile_picture;
-    const job = profile.occupation || profile.job_title || '';
+    
+    // Safely handle fields that might not exist or be the wrong type
+    const job = (profile.occupation || profile.job_title || '').toString();
+    const education = (profile.education || '').toString();
+    const bio = (profile.bio || '').toString();
+    
+    // Ensure interests is an array
+    let interests = [];
+    if (profile.interests) {
+      if (Array.isArray(profile.interests)) {
+        interests = profile.interests;
+      } else if (typeof profile.interests === 'string') {
+        // If it's a comma-separated string, split it
+        interests = profile.interests.split(',').map(i => i.trim()).filter(i => i);
+      }
+    }
 
     return (
-      <div className="simple-profile-card">
-        <div className="simple-card-image" onClick={() => onProfileClick(profile)}>
+      <div className="enhanced-profile-card">
+        <div className="card-image" onClick={() => onProfileClick(profile)}>
           {profilePicture ? (
             <img src={profilePicture} alt={firstName} />
           ) : (
-            <div className="image-placeholder" style={{ background: 'linear-gradient(135deg, #003A8F, #60a5fa)' }} />
+            <div className="image-placeholder" />
           )}
           <div className="image-overlay">
-            <h2>{firstName}{age ? `, ${age}` : ''}</h2>
-            <div className="distance-info">
-              <FaMapMarkedAlt /> {distanceText}
+            <div className="name-age">
+              <h2>{firstName} {age ? `, ${age}` : '23'},</h2>
+              <div className="distance-info">
+                <FaMapMarkedAlt /> <h3>{distanceText}</h3>
+              </div>
+            </div>
+            
+            {job && (
+              <div className="info-item">
+                <FaGraduationCap />
+                <span>{job}</span>
+              </div>
+            )}
+            <div className="card-actions">
+              <button className="action-btn pass" onClick={onPass}>
+                <FaTimes /> <span>Pass</span>
+              </button>
+              <button className="action-btn like" onClick={onLike}>
+                <FaHeart /> <span>Like</span>
+              </button>
+              <button className="action-btn message" onClick={onMessage}>
+                <FaComment /> <span>Message</span>
+              </button>
             </div>
           </div>
-        </div>
-        {job && (
-          <div className="simple-card-info">
-            <div className="info-item">
-              <FaBriefcase /> <span>{job}</span>
-            </div>
-          </div>
-        )}
-        <div className="simple-card-actions">
-          <button className="action-btn pass" onClick={onPass}>✕</button>
-          <button className="action-btn like" onClick={onLike}>♥</button>
-          <button className="action-btn message" onClick={onMessage}>💬</button>
-        </div>
+        </div> 
       </div>
     );
   };
@@ -290,7 +326,7 @@ const AlignPage = () => {
     <div className="align-page">
       <div className="page-header">
         <div className="header-content">
-          <h1>Find Your Match</h1>
+          <h3>Find Your Match</h3>
           <p>Intent-based matching · Quality over quantity</p>
         </div>
       </div>
@@ -335,7 +371,7 @@ const AlignPage = () => {
 
       <div className="swipe-container">
         {currentProfile ? (
-          <SimpleProfileCard
+          <EnhancedProfileCard
             key={currentProfile.id || currentProfile.user_id || currentProfile._id}
             profile={currentProfile}
             onLike={handleLike}

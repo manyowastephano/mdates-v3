@@ -17,18 +17,18 @@
 
 .header {
   width: 100%;
-  padding: 1rem 2rem;
+  padding:10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-wrap: nowrap;
+  gap:8px;
   position: relative;
   background: var(--bg-light, #F8FAFC);
 }
 
 .logo {
-  font-size: 1.8rem;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, var(--mubas-blue, #003A8F), var(--mubas-blue-dark, #002B6A));
@@ -44,7 +44,7 @@
 
 .nav-links {
   display: flex;
-  gap: 2rem;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
   font-weight: 500;
@@ -72,7 +72,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
   margin: 1rem auto 2rem;
 }
 
@@ -723,7 +723,7 @@
 
 @media (max-width: 480px) {
   .header {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
   }
 

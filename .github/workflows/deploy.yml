@@ -3,24 +3,25 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # deploy whenever main branch is updated
+      - main
 
 env:
-  # Fix 1: Opt into Node.js 24 to eliminate deprecation warning
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:              # <-- required for pushing to gh-pages
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'   # updated from 18
+          node-version: '22'
       - run: npm ci
       - name: Build project
-        run: CI=false npm run build     # Fix 2: disable strict CI mode
+        run: CI=false npm run build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

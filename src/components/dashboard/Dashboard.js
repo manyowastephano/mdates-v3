@@ -19,6 +19,20 @@ import './styles/Dashboard.css';
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://mudates.tiguleni.com';
 
+// ✅ Helper to parse JSON-string fields from backend
+const parseJsonField = (value, fallback = []) => {
+  if (Array.isArray(value)) return value;               // already an array
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch {
+      return fallback;                                   // invalid JSON → fallback
+    }
+  }
+  return fallback;                                      // anything else
+};
+
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -144,6 +158,11 @@ const Dashboard = () => {
             }
           }
 
+          // ✅ PARSE stringified JSON fields
+          const interests = parseJsonField(u.interests);
+          const lookingFor = parseJsonField(u.looking_for);
+          const relationshipGoals = parseJsonField(u.relationship_goals, []);
+
           return {
             id: u.id,
             name: displayName,
@@ -157,7 +176,7 @@ const Dashboard = () => {
             last_seen: u.last_seen || null,
 
             verified: normalizeBool(u.is_verified),
-            interests: Array.isArray(u.interests) ? u.interests : [],
+            interests,                                // ✅ now an array
 
             // ✅ stable (no shuffle on refresh)
             color: stableColor(u.id),
@@ -175,9 +194,10 @@ const Dashboard = () => {
             location,
             gender,
             education,
-            relationshipGoal,
+            relationshipGoal: relationshipGoals.length > 0 ? relationshipGoals[0] : relationshipGoal,
             personality,
             memberSince,
+            lookingFor,
           };
         });
 
@@ -425,8 +445,6 @@ const Dashboard = () => {
           ))}
         </div>
       )}
-
-
     </div>
   );
 };

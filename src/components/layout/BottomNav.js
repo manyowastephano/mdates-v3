@@ -1,13 +1,8 @@
 // BottomNav.jsx
-// ✅ Fixes “self refresh feel”: no aggressive loader, no state updates after unmount
-// ✅ Uses socket presence + conversation updates to refresh badges instantly
-// ✅ Keeps REST polling as a fallback (1 min) but does NOT set loading spinner each time
-// ✅ Fixes scroll handler jitter by using refs (no lastScrollY state causing re-renders)
-// ✅ Avoids re-creating intervals / listeners unnecessarily
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { FaHome, FaHeart, FaComment } from 'react-icons/fa'; // ✅ New icon imports
 import { API_ENDPOINTS, fetchJSON } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import './styles/BottomNav.css';
@@ -25,25 +20,30 @@ const BottomNav = () => {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [pendingMatches, setPendingMatches] = useState(0);
 
-  // keep loading very light (only for manual clicks)
   const [clickBusy, setClickBusy] = useState(false);
 
   const bottomNavRef = useRef(null);
   const intervalRef = useRef(null);
   const socketRef = useRef(null);
 
-  // refs to avoid scroll re-render loops
   const lastScrollYRef = useRef(0);
   const touchStartYRef = useRef(0);
   const mountedRef = useRef(false);
 
+  // ✅ Updated navItems with React Icons
   const navItems = useMemo(
     () => [
-      { id: 'dashboard', label: 'Discover', icon: '🏠', path: '/', showBadge: false },
+      {
+        id: 'dashboard',
+        label: 'Discover',
+        icon: <FaHome />,
+        path: '/',
+        showBadge: false,
+      },
       {
         id: 'matches',
         label: 'Matches',
-        icon: '❤️',
+        icon: <FaHeart />,
         path: '/matches',
         showBadge: pendingMatches > 0,
         badgeCount: pendingMatches,
@@ -51,7 +51,7 @@ const BottomNav = () => {
       {
         id: 'messages',
         label: 'Messages',
-        icon: '💬',
+        icon: <FaComment />,
         path: '/messages',
         showBadge: unreadMessages > 0,
         badgeCount: unreadMessages,
@@ -95,8 +95,6 @@ const BottomNav = () => {
 
   const fetchCounts = useCallback(async () => {
     if (!token || !user || !mountedRef.current) return;
-
-    // IMPORTANT: do NOT set a global loading spinner here (causes “refresh feel”)
     await Promise.all([fetchUnreadMessages(), fetchPendingMatches()]);
   }, [token, user, fetchUnreadMessages, fetchPendingMatches]);
 
@@ -137,7 +135,6 @@ const BottomNav = () => {
 
     fetchCounts();
 
-    // fallback refresh (e.g., if socket disconnects)
     intervalRef.current = setInterval(() => {
       fetchCounts();
     }, 60000);
@@ -157,7 +154,6 @@ const BottomNav = () => {
     const socket = io(SOCKET_URL, {
       transports: ['websocket'],
       reconnection: true,
-      // ✅ same auth style as your Chat.jsx
       auth: { token: `Bearer ${token}` },
     });
 
@@ -168,7 +164,6 @@ const BottomNav = () => {
     });
 
     socket.on('connected', () => {
-      // quick background refresh once
       fetchCounts();
     });
 
@@ -176,19 +171,13 @@ const BottomNav = () => {
       console.error('[bottomnav socket] ❌ connect_error:', err?.message || err);
     });
 
-    // If you emit this from backend when a convo updates (new message / unread count changes)
     socket.on('conversation_updated', () => {
-      // simplest safe approach: refetch counts (cheap)
       fetchUnreadMessages();
     });
 
-    // Presence updates won’t change unread badge, but you might want it later.
     socket.on('presence_update', () => {
       // ignore for badges
     });
-
-    // If your backend emits a specific unread total event, you can setUnreadMessages directly.
-    // socket.on('unread_total', ({ total }) => setUnreadMessages(Number(total) || 0));
 
     return () => {
       socket.disconnect();
@@ -197,7 +186,7 @@ const BottomNav = () => {
   }, [isAuthenticated, token, fetchCounts, fetchUnreadMessages]);
 
   // ----------------------------
-  // Scroll/touch/mouse handlers (stable, no state dependency)
+  // Scroll/touch/mouse handlers
   // ----------------------------
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY;
@@ -267,7 +256,6 @@ const BottomNav = () => {
         navigate(item.path);
         setActivePage(item.id);
 
-        // refresh counts when going to key pages, but no global loading
         if (item.id === 'messages') await fetchUnreadMessages();
         if (item.id === 'matches') await fetchPendingMatches();
       } finally {
@@ -296,8 +284,8 @@ const BottomNav = () => {
           disabled={clickBusy}
         >
           <div className="nav-icon-container">
-            <span className="nav-icon" role="img" aria-label={item.label}>
-              {item.icon}
+            <span className="nav-icon">
+              {item.icon} {/* ✅ Renders SVG icon */}
             </span>
 
             {item.showBadge && item.badgeCount > 0 && (

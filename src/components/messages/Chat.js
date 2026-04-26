@@ -10,10 +10,13 @@
 // ✅ INSTANT POPUP: accepts initialMessages & initialConversation, skips loading
 // ✅ NO "Conversation not found" flash – only shows error when truly missing
 // ✅ EMOJI PICKER, DAY DIVIDERS, RELATIVE TIMESTAMPS, SCROLL TO BOTTOM BUTTON
-// ✅ MESSAGE ACTIONS: edit, delete, reply (UI + optimistic updates, ready for backend)
-// ✅ FIX: Prevent "Failed to load conversation" error after chat already loaded
+// ✅ MESSAGE ACTIONS: edit, delete, reply (UI + optimistic updates)
 // ✅ ADDITIONAL SAFEGUARD: error only shown when messages are absent
 // ✅ INPUT FOCUS: hides attachment & voice buttons when typing for more space on mobile
+// ✅ NEW: Hover actions (edit/delete/reply) for sent messages (desktop)
+// ✅ NEW: Click actions for sent messages on small screens (mobile)
+// ✅ NEW: Reply with quoted message preview
+// ✅ FIX: Reply preview works after page refresh (enriches from loaded messages, logs missing originals)
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -22,7 +25,6 @@ import {
   FaPhoneAlt,
   FaPaperPlane,
   FaImages,
-  FaEllipsisV,
   FaCheckDouble,
   FaCheck,
   FaChevronLeft,
@@ -101,7 +103,6 @@ const Chat = ({
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const activeMessageMenuRef = useRef(null);
 
   const { user: currentUser, isAuthenticated, token } = useAuth();
 
@@ -144,8 +145,7 @@ const Chat = ({
   // Scroll to bottom button
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // Message actions dropdown
-  const [activeMessageId, setActiveMessageId] = useState(null);
+  // Message editing state
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
 
@@ -154,6 +154,16 @@ const Chat = ({
 
   // Screen width for responsive adjustments
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+
+  // Swipe state (for mobile reply)
+  const [swipeStartX, setSwipeStartX] = useState(null);
+  const [swipingMessageId, setSwipingMessageId] = useState(null);
+
+  // Active message for mobile click-to-show actions
+  const [activeMessageId, setActiveMessageId] = useState(null);
+
+  // --- NEW for reply feature ---
+  const [replyToMessage, setReplyToMessage] = useState(null);
 
   const convIdNum = useMemo(() => {
     if (!effectiveConversationId || effectiveConversationId === "new") return null;
@@ -209,32 +219,98 @@ const Chat = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close message actions dropdown when clicking outside
+  // Close message actions when clicking outside on mobile
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (activeMessageMenuRef.current && !activeMessageMenuRef.current.contains(event.target)) {
+    const handleClickOutsideMessages = (e) => {
+      // Only on small screens
+      if (window.innerWidth > 768) return;
+
+      const container = messagesContainerRef.current;
+      if (container && !container.contains(e.target)) {
         setActiveMessageId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener('mousedown', handleClickOutsideMessages);
+    return () => document.removeEventListener('mousedown', handleClickOutsideMessages);
   }, []);
 
   // ----------------------------
   // Helpers
   // ----------------------------
   const mapMessageData = useCallback(
-    (message) => ({
-      id: message.id,
-      text: message.content,
-      time: new Date(message.timestamp || message.created_at),
-      sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
-      read: !!message.read,
-      type: message.type || "text",
-      attachment: message.attachment_url || null,
-      deleted: message.deleted || false,
-      raw: message,
-    }),
+    (message, fallbackReplyTo = null) => {
+      // reply_to can come from the server as a full nested object, a bare id,
+      // or be absent entirely. Normalise into a consistent shape so the
+      // reply preview always has the data it needs.
+      let replyTo = fallbackReplyTo; // use caller-supplied fallback first
+      if (!replyTo) {
+        // Check all common server field names for reply data.
+        // The object form (reply_to) takes priority; bare-id forms are fallbacks.
+        const rtObject =
+          (typeof message.reply_to === "object" && message.reply_to) ||
+          (typeof message.reply_message === "object" && message.reply_message) ||
+          null;
+
+        // Use || (not ??) so that 0 / null / undefined are all treated as "no reply".
+        // Servers commonly use reply_to_id: 0 to mean "no reply".
+        const rtId =
+          message.reply_to_id ||
+          message.replyToId ||
+          message.reply_message_id ||
+          (typeof message.reply_to === "number" ? message.reply_to : null) ||
+          null;
+
+        // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────────
+        console.log('[Chat][mapMessageData] msg id:', message.id,
+          '| reply_to:', message.reply_to,
+          '| reply_to_id:', message.reply_to_id,
+          '| replyToId:', message.replyToId,
+          '| reply_message_id:', message.reply_message_id,
+          '| → rtObject:', rtObject,
+          '| → rtId:', rtId,
+          '| FULL RAW MSG:', message
+        );
+        // ───────────────────────────────────────────────────────────────────────
+
+        if (rtObject && rtObject.id) {
+          // full nested object from server
+          replyTo = {
+            id: rtObject.id,
+            content: rtObject.content || rtObject.text || rtObject.message || rtObject.body || "",
+            sender_id: rtObject.sender_id || null,
+            sender_name: rtObject.sender_name || rtObject.sender?.name || null,
+            attachment_url: rtObject.attachment_url || rtObject.attachment || null,
+          };
+        } else if (rtId) {
+          // bare id — content will be filled in by enrichReplyPreview
+          replyTo = { id: rtId, content: "", sender_id: null, sender_name: null, attachment_url: null };
+        }
+      }
+
+      // For attachment messages the server may echo back a placeholder label
+      // like "📷 Photo", "📎 Attachment", "🎤 Voice message".
+      // Strip it so only the actual media renders.
+      const attachmentUrl = message.attachment_url || null;
+      const PLACEHOLDER_LABELS = ["📷 Photo", "📎 Attachment", "🎤 Voice message"];
+      const rawText = message.content || "";
+      const text = attachmentUrl && PLACEHOLDER_LABELS.includes(rawText.trim())
+        ? ""
+        : rawText;
+
+      return {
+        id: message.id,
+        text,
+        time: new Date(message.timestamp || message.created_at),
+        sender: Number(message.sender_id) === Number(currentUser?.id) ? "me" : "them",
+        read: !!message.read,
+        type: message.type || "text",
+        attachment: attachmentUrl,
+        deleted: message.deleted || false,
+        replyTo,
+        raw: message,
+      };
+    },
     [currentUser?.id]
   );
 
@@ -300,6 +376,53 @@ const Chat = ({
       socketRef.current?.on("connected", onReady);
     });
   }, []);
+
+  // Helper to enrich reply preview when only ID is known
+  const enrichReplyPreview = useCallback((msg, allMessages, otherUserId, otherUserName) => {
+    if (!msg.replyTo || !msg.replyTo.id) return msg;
+    if (msg.replyTo.content || msg.replyTo.attachment_url) return msg; // already populated
+
+    const original = allMessages.find(m => String(m.id) === String(msg.replyTo.id));
+
+    // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────────
+    console.log('[Chat][enrichReplyPreview] msg id:', msg.id,
+      '| looking for replyTo.id:', msg.replyTo.id,
+      '| found original?', !!original,
+      '| original.text:', original?.text,
+      '| allMessage ids:', allMessages.map(m => m.id)
+    );
+    // ───────────────────────────────────────────────────────────────────────
+
+    if (!original) {
+      // Original message not in the current batch (probably older than page size)
+      // We return the message as-is; the UI will show a fallback placeholder.
+      console.warn(`[Chat] Original message ${msg.replyTo.id} not found in loaded messages. Reply preview will show placeholder.`);
+      return msg;
+    }
+
+    const senderId = original.sender === "me" ? currentUser?.id : otherUserId;
+    const senderName = original.sender === "me" ? "You" : otherUserName;
+
+    // Try mapped text first, then fall back to raw server fields
+    const resolvedContent =
+      original.text ||
+      original.raw?.content ||
+      original.raw?.text ||
+      original.raw?.message ||
+      original.raw?.body ||
+      "";
+
+    return {
+      ...msg,
+      replyTo: {
+        ...msg.replyTo,
+        content: resolvedContent,
+        attachment_url: original.attachment || original.raw?.attachment_url || null,
+        sender_id: senderId,
+        sender_name: senderName,
+      },
+    };
+  }, [currentUser?.id]);
 
   // ----------------------------
   // Socket setup (connect once)
@@ -395,9 +518,9 @@ const Chat = ({
       prevConvIdRef.current = effectiveConversationId;
     }
 
-    // Skip if already successfully loaded for this conversation and we have messages
+    // Skip if already successfully loaded for this conversation and we have messages.
     const isNewConv = effectiveConversationId === "new";
-    if (!isNewConv && hasLoadedRef.current && messages.length > 0) {
+    if (!isNewConv && hasLoadedRef.current) {
       return;
     }
 
@@ -440,15 +563,18 @@ const Chat = ({
             setConversation(null);
           }
         } else {
-          // Fetch fresh conversation data (may update existing state)
+          // Fetch fresh conversation data
           const [convData, messagesData] = await Promise.all([
             fetchJSON(API_ENDPOINTS.CHAT_CONVERSATION(effectiveConversationId), { method: "GET" }, token),
             fetchJSON(API_ENDPOINTS.CHAT_CONVERSATION_MESSAGES(effectiveConversationId), { method: "GET" }, token),
           ]);
 
+          // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────────
+          console.log('[Chat][load] Raw messagesData from API:', messagesData);
+          // ───────────────────────────────────────────────────────────────────────
+
           if (cancelled) return;
 
-          // Update conversation state
           setConversation(convData);
 
           const otherUser = convData?.participants?.find(
@@ -456,16 +582,19 @@ const Chat = ({
           );
           if (otherUser) setConversationUser(otherUser);
 
-          // Replace messages with fresh data
+          // Map raw messages
           const freshMessages = (messagesData || []).map(mapMessageData);
-          setMessages(freshMessages);
 
-          // Mark as successfully loaded (for non‑new conversations)
+          // Enrich reply previews for messages that have only an ID
+          const enrichedMessages = freshMessages.map(msg =>
+            enrichReplyPreview(msg, freshMessages, otherUser?.id, otherUser?.name)
+          );
+
+          setMessages(enrichedMessages);
           hasLoadedRef.current = true;
         }
       } catch (err) {
         console.error("Error loading conversation:", err);
-        // Only set error if there are no messages – otherwise keep the existing ones
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -493,13 +622,13 @@ const Chat = ({
     location.state,
     currentUser?.id,
     mapMessageData,
+    enrichReplyPreview,
     token,
     embedded,
     onBack,
     onConversationCreated,
     propUser,
     initialConversation,
-    messages.length,
   ]);
 
   // ----------------------------
@@ -514,8 +643,33 @@ const Chat = ({
 
       setMessages((prev) => {
         if (!msg?.id) return prev;
+
+        // Already present with real ID — skip
         if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, mapMessageData(msg)];
+
+        // Check if there is an optimistic (tmp-*) message for this sender
+        const optimisticIndex = prev.findIndex(
+          (m) => String(m.id).startsWith("tmp-") && m.sender === "me"
+        );
+        const fallbackReplyTo = optimisticIndex !== -1 ? prev[optimisticIndex].replyTo : null;
+        let mapped = mapMessageData(msg, fallbackReplyTo);
+
+        // Enrich reply preview if needed
+        mapped = enrichReplyPreview(
+          mapped,
+          prev,
+          conversationUser?.id,
+          conversationUser?.name
+        );
+
+        if (optimisticIndex !== -1) {
+          // Replace the optimistic entry in-place
+          const next = [...prev];
+          next[optimisticIndex] = mapped;
+          return next;
+        }
+
+        return [...prev, mapped];
       });
     };
 
@@ -535,7 +689,7 @@ const Chat = ({
       socket.off("new_message", onNewMessage);
       socket.off("conversation_read", onConversationRead);
     };
-  }, [convIdNum, mapMessageData, currentUser?.id]);
+  }, [convIdNum, mapMessageData, enrichReplyPreview, currentUser?.id, conversationUser]);
 
   // ----------------------------
   // Join room + mark_read
@@ -586,10 +740,14 @@ const Chat = ({
   // ----------------------------
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !replyToMessage) return;
 
     setSending(true);
     setError(null);
+
+    // Capture reply data before clearing
+    const replyData = replyToMessage;
+    setReplyToMessage(null); // clear immediately for UI
 
     try {
       let targetConversationId = effectiveConversationId;
@@ -626,7 +784,12 @@ const Chat = ({
       const socket = socketRef.current;
       if (!socket || !socket.connected) throw new Error("Socket not connected");
 
-      const payload = { conversation_id: targetConvIdNum, content: newMessage.trim(), type: "text" };
+      const payload = {
+        conversation_id: targetConvIdNum,
+        content: newMessage.trim(),
+        type: "text",
+        ...(replyData && { reply_to_id: replyData.id })
+      };
 
       const tempId = `tmp-${Date.now()}`;
       const optimistic = {
@@ -639,19 +802,34 @@ const Chat = ({
         attachment: null,
         optimistic: true,
         deleted: false,
+        replyTo: replyData ? {
+          id: replyData.id,
+          content: replyData.text,
+          sender_id: replyData.sender === "me" ? currentUser?.id : conversationUser?.id,
+          sender_name: replyData.sender === "me" ? "You" : conversationUser?.name,
+          attachment_url: replyData.attachment,
+        } : null,
       };
 
       setMessages((prev) => [...prev, optimistic]);
       setNewMessage("");
-      setShowEmojiPicker(false); // close emoji picker after sending
+      setShowEmojiPicker(false);
 
       const ack = await safeSocketEmit("send_message", payload);
 
       if (ack?.ok && ack?.message) {
-        const real = mapMessageData(ack.message);
+        const real = mapMessageData(ack.message, optimistic.replyTo);
         setMessages((prev) => {
           const withoutTemp = prev.filter((m) => m.id !== tempId);
-          if (withoutTemp.some((m) => m.id === real.id)) return withoutTemp;
+          const existingIdx = withoutTemp.findIndex((m) => m.id === real.id);
+          if (existingIdx !== -1) {
+            if (!withoutTemp[existingIdx].replyTo && real.replyTo) {
+              const patched = [...withoutTemp];
+              patched[existingIdx] = { ...patched[existingIdx], replyTo: real.replyTo };
+              return patched;
+            }
+            return withoutTemp;
+          }
           return [...withoutTemp, real];
         });
       } else {
@@ -789,7 +967,7 @@ const Chat = ({
         const tempId = `tmp-att-${Date.now()}`;
         const optimistic = {
           id: tempId,
-          text: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
+          text: "",
           time: new Date(),
           sender: "me",
           read: false,
@@ -797,18 +975,22 @@ const Chat = ({
           attachment: uploadedUrl,
           optimistic: true,
           deleted: false,
+          replyTo: replyToMessage ? { id: replyToMessage.id, content: replyToMessage.text, sender_id: replyToMessage.sender === "me" ? currentUser?.id : conversationUser?.id, sender_name: replyToMessage.sender === "me" ? "You" : conversationUser?.name, attachment_url: replyToMessage.attachment } : null,
         };
         setMessages((prev) => [...prev, optimistic]);
 
         const ack = await safeSocketEmit("send_message", {
           conversation_id: convIdNum,
-          content: file.type.startsWith("image/") ? "📷 Photo" : "📎 Attachment",
+          content: "",
           type: "attachment",
           attachment_url: uploadedUrl,
+          ...(replyToMessage && { reply_to_id: replyToMessage.id }),
         });
 
+        setReplyToMessage(null);
+
         if (ack?.ok && ack?.message) {
-          const real = mapMessageData(ack.message);
+          const real = mapMessageData(ack.message, optimistic.replyTo);
           setMessages((prev) => {
             const withoutTemp = prev.filter((m) => m.id !== tempId);
             if (withoutTemp.some((m) => m.id === real.id)) return withoutTemp;
@@ -905,7 +1087,7 @@ const Chat = ({
       const tempId = `tmp-voice-${Date.now()}`;
       const optimistic = {
         id: tempId,
-        text: "🎤 Voice message",
+        text: "",
         time: new Date(),
         sender: "me",
         read: false,
@@ -913,18 +1095,22 @@ const Chat = ({
         attachment: uploadedUrl,
         optimistic: true,
         deleted: false,
+        replyTo: null,
       };
       setMessages((prev) => [...prev, optimistic]);
 
       const ack = await safeSocketEmit("send_message", {
         conversation_id: convIdNum,
-        content: "🎤 Voice message",
+        content: "",
         type: "attachment",
         attachment_url: uploadedUrl,
+        ...(replyToMessage && { reply_to_id: replyToMessage.id }),
       });
 
+      setReplyToMessage(null);
+
       if (ack?.ok && ack?.message) {
-        const real = mapMessageData(ack.message);
+        const real = mapMessageData(ack.message, optimistic.replyTo);
         setMessages((prev) => {
           const withoutTemp = prev.filter((m) => m.id !== tempId);
           if (withoutTemp.some((m) => m.id === real.id)) return withoutTemp;
@@ -957,23 +1143,20 @@ const Chat = ({
   // Emoji picker handler
   const onEmojiClick = (emojiObject) => {
     setNewMessage((prev) => prev + emojiObject.emoji);
-    // Do NOT close the picker here – let outside click handle it
   };
 
   // ----------------------------
-  // Message Actions
+  // Message Actions (Edit, Delete, Reply)
   // ----------------------------
   const handleEditMessage = (message) => {
     setEditingMessageId(message.id);
     setEditText(message.text);
-    setActiveMessageId(null); // close dropdown
+    setActiveMessageId(null);
   };
 
   const handleDeleteMessage = async (message) => {
     if (!window.confirm("Delete this message?")) return;
-    setActiveMessageId(null);
 
-    // Optimistic update
     setMessages((prev) =>
       prev.map((m) =>
         m.id === message.id
@@ -981,9 +1164,9 @@ const Chat = ({
           : m
       )
     );
+    setActiveMessageId(null);
 
     try {
-      // Emit delete event (backend should broadcast message_deleted)
       const ack = await safeSocketEmit("delete_message", {
         conversation_id: convIdNum,
         message_id: message.id,
@@ -1005,17 +1188,14 @@ const Chat = ({
   };
 
   const handleReplyMessage = (message) => {
+    setReplyToMessage(message);
     setActiveMessageId(null);
-    // Prepend @username or quote
-    setNewMessage(`@${conversationUser?.name || "User"} `);
-    // Focus input
     document.querySelector(".message-input")?.focus();
   };
 
   const handleSaveEdit = async (messageId) => {
     if (!editText.trim()) return;
 
-    // Optimistic update
     const originalText = messages.find((m) => m.id === messageId)?.text;
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, text: editText, edited: true } : m))
@@ -1032,7 +1212,6 @@ const Chat = ({
       if (!ack?.ok) {
         console.error("Edit failed", ack);
         alert("Failed to edit message.");
-        // revert
         setMessages((prev) =>
           prev.map((m) => (m.id === messageId ? { ...m, text: originalText, edited: false } : m))
         );
@@ -1048,6 +1227,64 @@ const Chat = ({
     setEditText("");
   };
 
+  const cancelReply = () => {
+    setReplyToMessage(null);
+  };
+
+  // ----------------------------
+  // Swipe handlers (mobile reply)
+  // ----------------------------
+  const handleTouchStart = (e, messageId) => {
+    setSwipeStartX(e.touches[0].clientX);
+    setSwipingMessageId(messageId);
+  };
+
+  const handleTouchMove = (e, messageId) => {
+    if (!swipeStartX || swipingMessageId !== messageId) return;
+    const deltaX = e.touches[0].clientX - swipeStartX;
+    if (deltaX > 0) {
+      e.currentTarget.style.transform = `translateX(${Math.min(deltaX, 80)}px)`;
+    }
+  };
+
+  const handleTouchEnd = (e, messageId) => {
+    if (!swipeStartX || swipingMessageId !== messageId) {
+      setSwipeStartX(null);
+      setSwipingMessageId(null);
+      e.currentTarget.style.transform = '';
+      return;
+    }
+    const deltaX = e.changedTouches[0].clientX - swipeStartX;
+    e.currentTarget.style.transform = '';
+    if (deltaX > 60) {
+      const message = messages.find(m => String(m.id) === messageId);
+      if (message) {
+        handleReplyMessage(message);
+      }
+    }
+    setSwipeStartX(null);
+    setSwipingMessageId(null);
+  };
+
+  // Click handler for messages on mobile to toggle actions
+  const handleMessageClick = useCallback((messageId, e) => {
+    if (window.innerWidth > 768) return;
+
+    const target = e.target;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('video') ||
+      target.closest('audio') ||
+      target.closest('img') ||
+      target.closest('.message-actions')
+    ) {
+      return;
+    }
+
+    setActiveMessageId(prev => prev === messageId ? null : messageId);
+  }, []);
+
   // ----------------------------
   // Utility functions
   // ----------------------------
@@ -1059,37 +1296,6 @@ const Chat = ({
       .join("")
       .toUpperCase()
       .substring(0, 2);
-  };
-
-  const handleClearChat = async () => {
-    if (window.confirm("Clear all messages in this conversation?")) {
-      try {
-        await fetchJSON(API_ENDPOINTS.CHAT_CLEAR(effectiveConversationId), { method: "POST" }, token);
-        setMessages([]);
-        alert("Chat cleared successfully!");
-      } catch (err) {
-        console.error("Error clearing chat:", err);
-        alert("Failed to clear chat.");
-      }
-    }
-  };
-
-  const handleDeleteConversation = async () => {
-    if (window.confirm("Delete this conversation? This action cannot be undone.")) {
-      try {
-        await fetchJSON(API_ENDPOINTS.CHAT_CONVERSATION(effectiveConversationId), { method: "DELETE" }, token);
-        alert("Conversation deleted.");
-
-        if (embedded && onBack) {
-          onBack();
-        } else {
-          navigate("/messages");
-        }
-      } catch (err) {
-        console.error("Error deleting conversation:", err);
-        alert("Failed to delete conversation.");
-      }
-    }
   };
 
   // Determine if we should hide the left buttons (attachment & voice)
@@ -1150,9 +1356,8 @@ const Chat = ({
   });
 
   return (
-    <div className="chat-page">
+    <div className={`chat-page ${embedded ? 'embedded' : ''}`}>
       <div className="chat-header">
-        {/* LEFT SIDE: back button + user info */}
         <div className="chat-header-left">
           <div className="chat-user-info" onClick={handleProfileClick} style={{ cursor: "pointer" }}>
             <div className="chat-avatar">
@@ -1178,7 +1383,6 @@ const Chat = ({
           </div>
         </div>
 
-        {/* RIGHT SIDE: call, video, close */}
         <div className="chat-actions">
           <button className="act-btn" onClick={handleCall} title="Audio call" disabled={!conversationUser}>
             <FaPhoneAlt style={{ width: "20px" }} />
@@ -1188,7 +1392,6 @@ const Chat = ({
             <FaVideo style={{ width: "20px" }} />
           </button>
 
-          {/* Close button – replaces the old dropdown */}
           <button className="act-btn" onClick={handleBackClick} title="Close chat">
             <FaTimes style={{ width: "20px" }} />
           </button>
@@ -1229,17 +1432,47 @@ const Chat = ({
                 minute: "2-digit",
               });
 
-              // If message is deleted, show placeholder
               const messageContent = message.deleted ? (
                 <span className="deleted-message">This message was deleted.</span>
               ) : (
                 message.text
               );
 
+              // Render the quoted original message at the top of a reply bubble
+              const renderReplyPreview = () => {
+                if (!message.replyTo) return null;
+                const reply = message.replyTo;
+                let previewText;
+                if (reply.attachment_url) {
+                  previewText = "📎 Attachment";
+                } else if (reply.content) {
+                  previewText = reply.content.length > 80
+                    ? `${reply.content.substring(0, 80)}…`
+                    : reply.content;
+                } else {
+                  // Content not yet loaded or original was deleted
+                  previewText = "Original message not loaded";
+                }
+                return (
+                  <div className="reply-preview">
+                    {reply.sender_name && (
+                      <div className="reply-sender-name">{reply.sender_name}</div>
+                    )}
+                    <div className="reply-quoted-text">
+                      <span>{previewText}</span>
+                    </div>
+                  </div>
+                );
+              };
+
               return (
                 <div
                   key={message.id}
-                  className={`message ${message.sender === "me" ? "sent" : "received"} ${message.failed ? "failed" : ""} ${message.deleted ? "deleted" : ""}`}
+                  className={`message ${message.sender === "me" ? "sent" : "received"} ${message.failed ? "failed" : ""} ${message.deleted ? "deleted" : ""} ${activeMessageId === message.id ? "mobile-actions-visible" : ""} ${message.replyTo ? "has-reply" : ""}`}
+                  data-message-id={message.id}
+                  onTouchStart={(e) => handleTouchStart(e, String(message.id))}
+                  onTouchMove={(e) => handleTouchMove(e, String(message.id))}
+                  onTouchEnd={(e) => handleTouchEnd(e, String(message.id))}
                   title={message.failed ? "Failed to send" : undefined}
                 >
                   {message.sender === "them" && (
@@ -1252,86 +1485,101 @@ const Chat = ({
                     </div>
                   )}
 
-                  <div className="message-content-wrapper">
-                    {message.attachment && !message.deleted && (
-                      <div className="message-attachment">
-                        {isVideoUrl(message.attachment) ? (
-                          <video controls className="attachment-video" src={message.attachment} />
-                        ) : isAudioUrl(message.attachment) ? (
-                          <audio controls className="attachment-audio" src={message.attachment} />
-                        ) : (
-                          <img
-                            src={message.attachment}
-                            alt="Attachment"
-                            className="attachment-image"
-                            onClick={() => window.open(message.attachment, "_blank")}
-                          />
-                        )}
-                      </div>
-                    )}
+                  <div
+                    className="message-bubble-wrapper"
+                    onClick={(e) => handleMessageClick(message.id, e)}
+                  >
+                    <div className="message-bubble">
+                      {/* Render reply preview at top of bubble */}
+                      {renderReplyPreview()}
 
-                    {editingMessageId === message.id ? (
-                      <div className="message-edit">
-                        <textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="edit-input"
-                          autoFocus
-                        />
-                        <div className="edit-actions">
-                          <button onClick={() => handleSaveEdit(message.id)}>Save</button>
-                          <button onClick={cancelEdit}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="message-content">{messageContent}</div>
-                        {message.edited && !message.deleted && (
-                          <span className="edited-indicator">(edited)</span>
-                        )}
-                      </>
-                    )}
-
-                    <div className="message-meta">
-                      <span className="message-time" title={exactTime}>{relativeTime}</span>
-
-                      {message.sender === "me" && !message.deleted && (
-                        <span className="message-status">
-                          {message.read ? (
-                            <FaCheckDouble style={{ width: "20px" }} />
+                      {message.attachment && !message.deleted && (
+                        <div className="message-attachment">
+                          {isVideoUrl(message.attachment) ? (
+                            <video controls className="attachment-video" src={message.attachment} />
+                          ) : isAudioUrl(message.attachment) ? (
+                            <audio controls className="attachment-audio" src={message.attachment} />
                           ) : (
-                            <FaCheck style={{ width: "20px" }} />
+                            <img
+                              src={message.attachment}
+                              alt="Attachment"
+                              className="attachment-image"
+                              onClick={() => window.open(message.attachment, "_blank")}
+                            />
                           )}
-                        </span>
+                        </div>
                       )}
+
+                      {editingMessageId === message.id ? (
+                        <div className="message-edit">
+                          <textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="edit-input"
+                            autoFocus
+                          />
+                          <div className="edit-actions">
+                            <button onClick={() => handleSaveEdit(message.id)}>Save</button>
+                            <button onClick={cancelEdit}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {(message.text || message.deleted) && (
+                            <div className="message-content">{messageContent}</div>
+                          )}
+                          {message.edited && !message.deleted && (
+                            <span className="edited-indicator">(edited)</span>
+                          )}
+                        </>
+                      )}
+
+                      <div className="message-meta">
+                        <span className="message-time" title={exactTime}>{relativeTime}</span>
+                        {message.sender === "me" && !message.deleted && (
+                          <span className="message-status">
+                            {message.read ? (
+                              <FaCheckDouble style={{ width: "20px" }} />
+                            ) : (
+                              <FaCheck style={{ width: "20px" }} />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    {!message.deleted && (
+                      <div className="message-actions">
+                        {message.sender === "me" && (
+                          <>
+                            <button
+                              className="action-btn edit"
+                              onClick={() => handleEditMessage(message)}
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              className="action-btn delete"
+                              onClick={() => handleDeleteMessage(message)}
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="action-btn reply"
+                          onClick={() => handleReplyMessage(message)}
+                          title="Reply"
+                        >
+                          <FaReply />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {message.sender === "me" && !message.deleted && (
-                    <div className="message-actions-container" ref={activeMessageId === message.id ? activeMessageMenuRef : null}>
-                      <button
-                        className="message-actions-btn"
-                        onClick={() => setActiveMessageId(activeMessageId === message.id ? null : message.id)}
-                      >
-                        <FaEllipsisV />
-                      </button>
-                      {activeMessageId === message.id && (
-                        <div className="message-actions-dropdown">
-                          <button onClick={() => handleEditMessage(message)}>
-                            <FaEdit /> Edit
-                          </button>
-                          <button onClick={() => handleDeleteMessage(message)}>
-                            <FaTrash /> Delete
-                          </button>
-                          <button onClick={() => handleReplyMessage(message)}>
-                            <FaReply /> Reply
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {message.sender === "me" && !message.deleted && (
+                  {message.sender === "me" && (
                     <div className="message-avatar">
                       {currentUser?.profile_picture ? (
                         <img src={currentUser.profile_picture} alt={currentUser.name} className="avatar-image" />
@@ -1345,7 +1593,6 @@ const Chat = ({
             })
           )}
 
-          {/* Scroll to bottom button */}
           {showScrollButton && (
             <button className="scroll-to-bottom-btn" onClick={scrollToBottom} title="Scroll to latest">
               <FaChevronDown />
@@ -1356,7 +1603,26 @@ const Chat = ({
         </div>
       </div>
 
-      <form className="chat-input-area" onSubmit={handleSendMessage}>
+      <div className="chat-bottom">
+        {/* WhatsApp-style reply preview bar */}
+        {replyToMessage && (
+          <div className="reply-preview-bar">
+            <div className="reply-bar-accent" />
+            <div className="reply-bar-body">
+              <span className="reply-bar-sender">
+                {replyToMessage.sender === "me" ? "You" : conversationUser?.name}
+              </span>
+              <span className="reply-bar-text">
+                {replyToMessage.attachment ? "📎 Attachment" : replyToMessage.text}
+              </span>
+            </div>
+            <button className="cancel-reply-btn" onClick={cancelReply} title="Cancel reply" type="button">
+              <FaTimes size={14} />
+            </button>
+          </div>
+        )}
+
+        <form className="chat-input-area" onSubmit={handleSendMessage}>
         <div className="input-actions">
           {!hideLeftButtons && (
             <button
@@ -1413,10 +1679,11 @@ const Chat = ({
           )}
         </div>
 
-        <button type="submit" className="send-btn" disabled={!newMessage.trim() || sending}>
+        <button type="submit" className="send-btn" disabled={(!newMessage.trim() && !replyToMessage) || sending}>
           {sending ? <FaSpinner className="spinner" /> : <FaPaperPlane style={{ width: "20px" }} />}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

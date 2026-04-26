@@ -34,7 +34,7 @@ const LandingPage = () => {
     { name: 'How it works', to: '#how-it-works', id: 'HowItWorks' },
     { name: 'Pricing', to: '#pricing', id: 'Pricing' },
     { name: 'Login', to: '/login', id: 'Login' },
-    { name: 'Register', to: '/signup', id: 'Register' },
+    
   ];
   const mobileVisibleLinks = [
     { name: 'How it works', to: '#how-it-works', id: 'HowItWorks' },

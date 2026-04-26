@@ -1,10 +1,8 @@
-
 .chat-page {
   display: flex;
   flex-direction: column;
  
 }
-
 .chat-header {
   display: flex;
   align-items: center;
@@ -271,6 +269,7 @@
   position: relative;
 }
 
+
 .message.sent .message-content {
   background: linear-gradient(135deg, var(--mubas-blue), #2563eb);
   color: white;
@@ -501,16 +500,26 @@
    CHAT INPUT AREA
    =========================== */
 
+/* Fixed wrapper: holds reply bar + input form together at the bottom */
+.chat-bottom {
+  position: fixed;
+  bottom: 0;
+  width: 80%;
+  background: white;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-input-area {
   display: flex;
   align-items: flex-end;
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid #e5e7eb;
- background: white;
-  position:fixed;
-  bottom: 0;
-  width:80%;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 
@@ -2007,10 +2016,13 @@
     flex: 1;
     text-align: center;
   }
+  .chat-bottom {
+    width: 100%;
+  }
   .chat-input-area {
-    padding: 6px 8px;    
-    width: 100%;   
-    gap: 4px;                
+    padding: 6px 8px;
+    width: 100%;
+    gap: 4px;
   }
 
   .act-btn,
@@ -2117,4 +2129,522 @@
     right: 0;
     bottom: 50px;
   }
+}
+
+
+/* Action buttons container – hidden by default */
+.message-actions {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 6px 10px;
+  border-radius: 30px;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 5;
+  margin-bottom: 8px;
+}
+
+/* Show actions on hover of the entire message wrapper (desktop) */
+@media (hover: hover) and (pointer: fine) {
+  .message:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/* Individual action button styling */
+.message-actions .action-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.message-actions .action-btn:hover {
+  background: var(--bg-lighter);
+  color: var(--mubas-blue);
+  transform: scale(1.1);
+}
+
+/* For swipe feedback – optional translate effect */
+.message[data-swipe] {
+  transition: transform 0.1s linear;
+}
+/* ============================================
+   WHATSAPP-STYLE REPLY PREVIEW BAR (above input)
+   ============================================ */
+
+.reply-preview-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: #f0f2f5;
+  border-top: 1px solid #d1d5db;
+  padding: 8px 12px 8px 0;
+  min-height: 52px;
+  animation: slideUpReply 0.15s ease-out;
+}
+
+@keyframes slideUpReply {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* The green left accent bar */
+.reply-bar-accent {
+  width: 4px;
+  border-radius: 4px;
+  background: #25d366;
+  flex-shrink: 0;
+  margin: 2px 10px 2px 12px;
+}
+
+/* Text block: sender name + message preview */
+.reply-bar-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  gap: 2px;
+}
+
+.reply-bar-sender {
+  font-size: 13px;
+  font-weight: 700;
+  color: #25d366;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-bar-text {
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* ✕ cancel button */
+.cancel-reply-btn {
+  background: none;
+  border: none;
+  color: #8a8a8a;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: center;
+  transition: background 0.15s, color 0.15s;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+}
+
+.cancel-reply-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #333;
+}
+
+
+
+
+
+/* ============================================
+   FORCE BLACK TEXT ON REPLIED MESSAGES
+   ============================================ */
+.message.has-reply .message-content,
+.message.has-reply .message-time,
+.message.has-reply .message-status,
+.message.has-reply .edited-indicator {
+  color: #0000 !important;
+}
+
+/* Ensure reply preview text is also black */
+.message.has-reply .reply-preview .reply-quoted-text {
+  color: #ffff !important;
+  opacity: 0.8; /* slightly softer for quoted text */
+}
+
+
+.message.sent.has-reply .message-content,
+.message.sent.has-reply .message-meta,
+.message.sent.has-reply .message-time,
+.message.sent.has-reply .message-status {
+  color: #ffff !important;
+}
+
+.message.received.has-reply .message-content {
+  color: #000 !important;
+}
+
+
+
+/* The quoted text — no label, just the original message content */
+.reply-preview .reply-quoted-text {
+  color: #374151;
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+  opacity: 0.88;
+}
+
+.message.sent .reply-preview .reply-quoted-text {
+  color: rgba(255, 255, 255, 0.92);
+}
+/* ============================================
+   MESSAGE BUBBLE – SENT = MUBAS BLUE, RECEIVED = WHITE
+   ============================================ */
+
+/* Outer wrapper – alignment only */
+.message-bubble-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 85%;
+}
+
+/* Base bubble styles */
+.message-bubble {
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* SENT messages – mubas blue */
+.message.sent .message-bubble {
+  background: var(--mubas-blue);
+  border: none;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 18px;
+  border-bottom-left-radius: 18px;
+  border-top-left-radius: 18px;
+}
+
+/* RECEIVED messages – white with border */
+.message.received .message-bubble {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top-left-radius: 4px;
+  border-bottom-right-radius: 18px;
+  border-bottom-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+
+/* Message content – no extra background, just padding */
+.message-content {
+  padding: 10px 14px 4px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  background: none !important;
+  border: none !important;
+}
+
+/* Text colors */
+.message.sent .message-content {
+  color: #ffffff;
+}
+
+.message.received .message-content {
+  color: #1f2937;
+}
+
+/* Meta (timestamp + read receipts) */
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 14px 10px 14px;
+  margin-top: 0;
+  font-size: 11px;
+}
+
+.message.received .message-meta {
+  justify-content: flex-start;
+  color: #6b7280;
+}
+
+.message.sent .message-meta {
+  justify-content: flex-end;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.message-time {
+  color: inherit;
+}
+
+.message-status {
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
+.message-status svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Failed message – keep distinct */
+.message.failed .message-bubble {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.message.failed .message-content,
+.message.failed .message-meta {
+  color: #991b1b !important;
+}
+
+/* Deleted message */
+.message.deleted .message-content {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.deleted-message {
+  font-style: italic;
+}
+
+.edited-indicator {
+  font-size: 11px;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+.message.sent .edited-indicator {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message.received .edited-indicator {
+  color: #6b7280;
+}
+
+/* ============================================
+   ATTACHMENTS
+   ============================================ */
+.message-attachment {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.message.sent .message-attachment {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.attachment-image,
+.attachment-video,
+.attachment-audio {
+  width: 100%;
+  display: block;
+  border-radius: 12px;
+}
+
+/* ============================================
+   REPLY MESSAGES – TWO‑TONE HIGHLIGHT (NO GREEN LINE)
+   ============================================ */
+
+/* Overlay for replied messages */
+.message.has-reply .message-bubble {
+  position: relative;
+}
+
+.message.has-reply .message-bubble::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.message.sent.has-reply .message-bubble::after {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.message.received.has-reply .message-bubble::after {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+
+.message.has-reply .message-content,
+.message.has-reply .message-meta,
+.message.has-reply .message-time,
+.message.has-reply .message-status,
+.message.has-reply .edited-indicator {
+  color: #ffff !important;
+}
+
+/* Reply preview block – NO GREEN BORDER */
+.message-bubble .reply-preview {
+  margin: 0;
+  padding: 8px 14px 7px 14px;
+  background: rgba(30, 27, 27, 0.06);      /* light grey tint – visible on white */
+  border-left: 3px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+}
+
+.message.sent .message-bubble .reply-preview {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.reply-preview .reply-quoted-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Divider between quoted text and new message */
+.message-bubble .reply-preview::after {
+  content: "";
+  display: block;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 7px -14px 0 -14px;
+}
+
+.message.sent .message-bubble .reply-preview::after {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Remove top radius on content after reply preview */
+.message.has-reply .message-bubble .message-content {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* ============================================
+   REPLY PREVIEW BAR (above input) – NO GREEN ACCENT
+   ============================================ */
+.reply-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #fff;
+  border-top: 1px solid #d1d5db;
+  padding: 8px 12px;
+  min-height: 52px;
+}
+
+/* Remove the green bar entirely */
+.reply-bar-accent {
+  display: none;
+}
+
+.reply-bar-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  gap: 2px;
+  padding-left: 8px;
+}
+
+.reply-bar-sender {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-bar-text {
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.cancel-reply-btn {
+  background: none;
+  border: none;
+  color: #8a8a8a;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+}
+
+.cancel-reply-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #312d2d;
+}
+.chat-page.embedded {
+  display: flex;
+  flex-direction: column;
+  height: 100%;           
+  max-height: 80vh;       
+}
+
+.chat-page.embedded .chat-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-page.embedded .chat-bottom {
+  position: relative;     /* Override fixed positioning */
+  width: 100%;            /* Full width of modal */
+  bottom: auto;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Ensure the input area itself also uses full width */
+.chat-page.embedded .chat-input-area {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+}
+
+/* Keep the header sticky within the modal, not viewport */
+.chat-page.embedded .chat-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }

@@ -1,375 +1,346 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 :root {
-  --mubas-blue: #003A8F;
-  --mubas-blue-light: #2563eb;
-  --mubas-blue-dark: #002B6A;
-  --mubas-gold: #F4C430;
-  --bg-light: #F8FAFC;
-  --bg-lighter: #F1F5F9;
-  --white: #FFFFFF;
-  --text-primary: #1F2937;
-  --text-secondary: #6B7280;
-  --text-tertiary: #9CA3AF;
-  --success: #10B981;
-  --error: #EF4444;
-  --warning: #F59E0B;
-
-  /* Primary gradient colours (solid) */
-  --primary-dark: #2c3b53;
-  --primary-darker: #242528;
-
-  /* Border radius scale */
-  --radius-xl: 32px;
-  --radius-lg: 20px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
-  --radius-xs: 8px;
-
-  /* Shadow scale */
-  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.06);
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 30px 50px rgba(0, 0, 0, 0.12);
-
-  /* Border colors */
-  --border-color: #E5E7EB;
-  --border-light: #F3F4F6;
-
-  /* Gradients */
-  --primary-gradient: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
-  --gold-gradient: linear-gradient(135deg, #F4C430 0%, #FBBF24 100%);
-  --success-gradient: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  --ink:          #2c3b53ff;
+  --ink-soft:    #3a3a4a;
+  --mist:        #8b8b9e;
+  --fog:         #e0e0ea;
+  --surface:     #ffffff;
+  --surface-2:   #f5f5fa;
+  --accent:      #2c3b53ff ;
+  --accent-warm:  rgb(20, 36, 60);
+  --verified:    #60a5fa;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Grid ──────────────────────────────────────────────── */
+
+/* LARGE screens: always 3 columns */
+@media (min-width: 1025px) {
+  .user-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: start;
+  }
+}
+
+/* TABLET: 2 columns */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .user-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: start;
+  }
+}
+
+/* MOBILE: 2 compact columns */
+@media (max-width: 640px) {
+  .user-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: start;
+  }
+}
+
+/* Fallback base (no media query) */
+.user-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: start;
+}
+
+/* ── Card ──────────────────────────────────────────────── */
 .user-card {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 40px -20px var(--primary-dark, #2c3b53) !important;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 380px;
-  height: auto;
-  
+  /* fixed min-height so the card never collapses on large screens */
+  min-height: 340px;
+  box-sizing: border-box;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-smooth);
 }
 
 .user-card.hovered {
-  transform: translateY(-8px);
-  box-shadow: 0 30px 40px -20px var(--primary-dark, #2c3b53) !important;
-  transition: all 0.3s ease, border 0.2s ease, box-shadow 0.3s ease;
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(15, 15, 20, 0.13);
 }
 
-/* Image area */
+/* ── Image ─────────────────────────────────────────────── */
 .user-image {
-  height: 200px;
-  flex-shrink: 0;
-  width: 100%;
-  overflow: hidden;
   position: relative;
-  background: var(--bg-lighter);
+  width: 100%;
+  height: 200px;        /* fixed px — always visible regardless of parent width */
+  min-height: 200px;    /* belt-and-suspenders */
+  overflow: hidden;
+  background: var(--surface-2);
+  flex-shrink: 0;
 }
 
 .user-image img {
-  min-width: 100%;
-  height: 150%;
-  object-fit:cover;   
-  aspect-ratio: 1;
-  
-  transition: transform 0.6s ease;
-  
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.6s var(--ease-smooth);
 }
 
 .user-card.hovered .user-image img {
-  transform: scale(1.08);
+  transform: scale(1.05);
+}
+
+.user-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 30%,
+    rgba(10, 10, 18, 0.5) 65%,
+    rgba(10, 10, 18, 0.85) 100%
+  );
+  pointer-events: none;
 }
 
 .avatar-placeholder {
   width: 100%;
   height: 100%;
-  background: var(--primary-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 48px;
-  font-weight: 600;
+  background: linear-gradient(145deg, #1c1c2e 0%, #2d2d42 100%);
+  font-family: 'Playfair Display', serif;
+  font-size: 56px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.28);
 }
 
-/* Overlay badges */
+/* Match badge */
 .user-meta {
   position: absolute;
-  top: 1px;
-  right: 5px;
-  display: flex;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  gap: 8px;
-  z-index: 2;
-}
-
-.math-badge {
-  background: var(--success-gradient);
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.distance-badge {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: 20px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Quick action icons on hover */
-.quick-actions {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: flex;
-  gap: 8px;
+  top: 10px;
+  right: 10px;
   z-index: 3;
 }
 
+.math-badge {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Name / age / distance overlay */
+.image-identity {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.image-identity-left h5 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.user-age {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-left: 5px;
+}
+
+.verified-badge {
+  color: var(--verified);
+  font-size: 0.9rem;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 3px;
+}
+
+.distance-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px);
+  padding: 3px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Quick actions */
+.quick-actions {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.25s var(--ease-spring);
+}
+
+.user-card.hovered .quick-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .quick-action-btn {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--mubas-blue);
-  font-size: 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s var(--ease-spring), background 0.2s ease, color 0.2s ease;
 }
 
-.quick-action-btn:hover {
-  background: white;
-  transform: scale(1.1);
-  color: var(--mubas-blue-dark);
-}
+.quick-action-btn:hover  { transform: scale(1.12); background: #fff; }
+.quick-action-btn.liked  { color: var(--accent); background: rgba(200,82,42,0.1); }
 
-.quick-action-btn.liked {
-  color: #8a0303;
-}
-
+/* ── Info ──────────────────────────────────────────────── */
+/* flex:1 makes info fill remaining height inside the min-height card */
 .user-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 16px;
-  gap: 12px;
-}
-
-.user-header {
-  margin-bottom: 0;
-}
-
-/* Target h5 as used in JSX */
-.user-name h5 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: -0.3px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 4px 0;
-  color: var(--text-primary);
-}
-
-.user-age {
-  color: var(--text-secondary);
-  font-weight: 400;
-  font-size: 1rem;
-  margin-left: 2px;
-}
-
-.verified-badge {
-  color: var(--mubas-blue);
-  font-size: 1.1rem;
-  display: inline-flex;
-  margin-left: 2px;
+  padding: 12px 14px 14px;
+  gap: 8px;
+  box-sizing: border-box;
 }
 
 .user-job {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--mist);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   margin: 0;
-  white-space:wrap;
 }
 
-.user-job i {
-  font-size: 0.9rem;
-  color: var(--mubas-blue);
+.user-job svg { color: var(--accent-warm); flex-shrink: 0; }
+
+.card-divider {
+  height: 1px;
+  background: var(--fog);
+  border: none;
+  margin: 0;
 }
 
-/* Interests tags */
 .user-interests {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 4px 0 8px;
+  gap: 5px;
 }
 
 .interest-tag {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--mubas-blue);
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 20px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 0.74rem;      /* slightly larger — more readable */
   font-weight: 500;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  padding: 4px 11px;       /* more breathing room */
+  border-radius: 100px;
+  border: 1px solid var(--fog);  /* full 1px border — more visible */
+  display: inline-block;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-spring);
 }
 
 .interest-tag:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(200,82,42,0.07);
+  color: var(--accent);
   transform: translateY(-1px);
 }
 
+/* Button pinned to bottom via margin-top:auto */
 .view-profile-btn {
-  background: transparent;
-  border: 1.5px solid var(--primary-dark);
-  color: var(--primary-dark);
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
   margin-top: auto;
   width: 100%;
-  display: inline-flex;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: var(--shadow-sm);
+  gap: 7px;
+  box-sizing: border-box;
+  transition: background 0.25s ease, transform 0.25s var(--ease-spring);
 }
 
 .view-profile-btn .btn-icon {
-  font-size: 1rem;
-  transition: transform 0.2s ease;
+  font-size: 0.78rem;
+  transition: transform 0.25s var(--ease-spring);
 }
 
 .view-profile-btn:hover {
-  background: var(--primary-dark);
-  color: white;
+  background: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(44, 59, 83, 0.3);
-  border-color: var(--primary-darker);
 }
 
-.view-profile-btn:hover .btn-icon {
-  transform: translateX(4px);
-}
+.view-profile-btn:hover .btn-icon { transform: translateX(4px); }
+.view-profile-btn:active           { transform: translateY(0); }
 
-/* ===== RESPONSIVE: TWO CARDS PER ROW ON SMALL SCREENS ===== */
+/* ── Responsive tweaks ────────────────────────────────── */
 @media (max-width: 640px) {
-  .user-card {
-    min-height: 340px;        /* slightly shorter for mobile */
-  }
+  .user-card      { min-height: 300px; }
+  .user-image     { height: 160px; min-height: 160px; }
 
-  .user-image {
-    height: 150px;            /* reduce image height */
-  }
+  .image-identity-left h5 { font-size: 0.95rem; }
+  .user-age                { font-size: 0.85rem; }
 
-  .user-info {
-    padding: 12px 10px 12px;
-    gap: 8px;
-  }
-
-  .user-name h5 {
-    font-size: 1rem;          /* smaller name */
-  }
-
-  .user-age {
-    font-size: 0.9rem;
-  }
-
-  .user-job {
-    font-size: 0.8rem;
-  }
-
-  .interest-tag {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-  }
-
-  /* ===== VIEW PROFILE BUTTON FIX ===== */
-  .view-profile-btn {
-    font-size: 0.8rem;
-    padding: 8px 10px;
-    white-space: nowrap;       /* prevent text wrapping */
-  }
-
-  .quick-action-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
-  }
-
-  /* ===== MATCH BADGE ADJUSTMENT FOR SMALL SCREENS ===== */
-  .user-meta {
-    width: 30px;
-    height: 30px;
-    top: 2px;
-    right: 2px;
-  }
-
-  .math-badge {
-    font-size: 9px;
-    padding: 6px;
-  }
-}
-
-/* Extra small screens (480px and below) – further adjust button and badge */
-@media (max-width: 480px) {
-  /* View Profile button – even smaller font and padding */
-  .view-profile-btn {
-    font-size: 0.7rem;
-    padding: 6px 4px;
-    white-space: nowrap;
-  }
-
-  /* Match badge – smaller still */
-  .user-meta {
-    width: 30px;
-    height: 30px;
-    top: 1px;
-    right: 1px;
-  }
-
-  .math-badge {
-    font-size: 8px;
-    padding: 4px;
-  }
-
-  /* Optional: hide heart icon on very tiny screens to save space */
-  .math-badge svg {
-    display: none;
-  }
+  .user-info      { padding: 10px 10px 12px; gap: 6px; }
+  .user-job       { font-size: 0.7rem; }
+  .interest-tag   { font-size: 0.62rem; padding: 2px 7px; }
+  .view-profile-btn { font-size: 0.72rem; padding: 8px 10px; }
+  .quick-action-btn { width: 30px; height: 30px; font-size: 12px; }
 }

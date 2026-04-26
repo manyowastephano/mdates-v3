@@ -23,7 +23,6 @@ const getProfileAge = (profile) => {
   // If age is directly provided
   if (profile.age) return profile.age;
 
-  // Try various possible birth date fields
   const dob = profile.date_of_birth || profile.birth_date || profile.dob || profile.birthday;
   if (dob) {
     const birthDate = new Date(dob);

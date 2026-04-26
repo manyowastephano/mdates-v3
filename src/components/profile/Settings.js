@@ -646,12 +646,7 @@ const Settings = () => {
       
       {/* Content Section */}
       <div className="settings-content">
-        <div className="section-header">
-          <div className="section-title">
-            <i className={getSectionIcon(activeSection)}></i>
-            <h3>{getSectionTitle(activeSection)}</h3>
-          </div>
-        </div>
+        
         
         <div className="settings-content-scroll">
           {renderSectionContent()}

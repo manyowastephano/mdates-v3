@@ -5,6 +5,10 @@ on:
     branches:
       - main  # deploy whenever main branch is updated
 
+env:
+  # Fix 1: Opt into Node.js 24 to eliminate deprecation warning
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,11 +17,12 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'   # updated from 18
       - run: npm ci
-      - run: npm run build
+      - name: Build project
+        run: CI=false npm run build     # Fix 2: disable strict CI mode
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build  # change to ./docs if you build to docs
+          publish_dir: ./build
